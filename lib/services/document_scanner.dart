@@ -49,7 +49,9 @@ class ScanPage {
   void validate() {
     for (final edge in [cropTop, cropBottom, cropLeft, cropRight]) {
       if (!edge.isFinite || edge < 0 || edge > 0.45) {
-        throw const KepliException('Each crop edge must be between 0 and 45 percent.');
+        throw const KepliException(
+          'Each crop edge must be between 0 and 45 percent.',
+        );
       }
     }
     if (sourcePath.isEmpty) {
@@ -75,10 +77,14 @@ class DocumentScanner {
     String? contactId,
   }) async {
     if (pages.isEmpty || pages.length > maxPages) {
-      throw const KepliException('A document must have between 1 and 50 pages.');
+      throw const KepliException(
+        'A document must have between 1 and 50 pages.',
+      );
     }
     if (name.trim().isEmpty || name.length > 180) {
-      throw const KepliException('Enter a document name of 1 to 180 characters.');
+      throw const KepliException(
+        'Enter a document name of 1 to 180 characters.',
+      );
     }
     if (role == AttachmentRole.businessCard &&
         (contactId == null || !isUuid(contactId))) {
@@ -92,9 +98,10 @@ class DocumentScanner {
     final output = p.join(directory.path, '${const Uuid().v4()}.pdf');
     final immutablePages = List<ScanPage>.of(pages);
     await Isolate.run(() => _writeDocument(immutablePages, output));
-    final safeName = name
-        .trim()
-        .replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1f]'), '_');
+    final safeName = name.trim().replaceAll(
+      RegExp(r'[<>:"/\\|?*\x00-\x1f]'),
+      '_',
+    );
     final filename = safeName.toLowerCase().endsWith('.pdf')
         ? safeName
         : '$safeName.pdf';
@@ -141,24 +148,13 @@ class DocumentScanner {
     page.validate();
     final file = File(page.sourcePath);
     final length = await file.length();
-    if (length == 0 || length > maxSourceBytes) {
-      throw const KepliException('Scan images must be nonempty and smaller than 64 MB.');
-    }
-    final bytes = await file.readAsBytes();
-    final decoder = imaging.findDecoderForData(bytes);
-    final info = decoder?.startDecode(bytes);
-    if (info == null) {
+    if (length < 16 || length > maxSourceBytes) {
       throw const KepliException(
-        'This image cannot be scanned. Choose a JPEG, PNG or another supported image.',
+        'Scan images must be nonempty and smaller than 64 MB.',
       );
     }
-    if (info.width * info.height > maxPixels) {
-      throw const KepliException('Resize scan images larger than 40 megapixels first.');
-    }
-    final decoded = decoder!.decodeFrame(0);
-    if (decoded == null) {
-      throw const KepliException('The scan image is damaged or incomplete.');
-    }
+    final bytes = await file.readAsBytes();
+    final decoded = _decodeImage(bytes);
     var image = imaging.bakeOrientation(decoded);
     final turns = page.quarterTurns % 4;
     if (turns != 0) {
@@ -187,5 +183,33 @@ class DocumentScanner {
       image = imaging.adjustColor(image, contrast: 1.15, saturation: 0);
     }
     return Uint8List.fromList(imaging.encodeJpg(image, quality: 88));
+  }
+
+  static imaging.Image _decodeImage(Uint8List bytes) {
+    try {
+      final decoder = imaging.findDecoderForData(bytes);
+      final info = decoder?.startDecode(bytes);
+      if (info == null) {
+        throw const KepliException(
+          'This image cannot be scanned. Choose a JPEG, PNG or another supported image.',
+        );
+      }
+      if (info.width * info.height > maxPixels) {
+        throw const KepliException(
+          'Resize scan images larger than 40 megapixels first.',
+        );
+      }
+      final decoded = decoder!.decodeFrame(0);
+      if (decoded == null) {
+        throw const KepliException('The scan image is damaged or incomplete.');
+      }
+      return decoded;
+    } on RangeError {
+      throw const KepliException('The scan image is damaged or incomplete.');
+    } on FormatException {
+      throw const KepliException('The scan image is damaged or incomplete.');
+    } on imaging.ImageException {
+      throw const KepliException('The scan image is damaged or incomplete.');
+    }
   }
 }

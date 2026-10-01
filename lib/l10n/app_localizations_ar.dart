@@ -162,10 +162,10 @@ class AppLocalizationsAr extends AppLocalizations {
       count,
       locale: localeName,
       other: 'الأيام المتبقية: $count',
-      many: 'متبقيًا $count يومًا',
-      few: 'متبقية $count أيام',
-      two: 'متبقيان يومان',
-      one: 'متبقٍ يوم واحد',
+      many: 'بقي $count يومًا',
+      few: 'بقيت $count أيام',
+      two: 'بقي يومان',
+      one: 'بقي يوم واحد',
       zero: 'ينتهي اليوم',
     );
     return '$_temp0';

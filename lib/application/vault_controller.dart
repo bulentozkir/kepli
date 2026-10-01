@@ -108,7 +108,9 @@ class VaultController extends Notifier<VaultState> {
 
   Future<T> _perform<T>(Future<T> Function() operation) async {
     if (state.busy) {
-      throw const KepliException('Please wait for the current operation to finish.');
+      throw const KepliException(
+        'Please wait for the current operation to finish.',
+      );
     }
     state = state.copyWith(busy: true, clearNotice: true);
     try {
@@ -160,6 +162,34 @@ class VaultController extends Notifier<VaultState> {
     await _reload(notice: 'Settings saved.');
   });
 
+  Future<void> renameCategory(String oldName, String newName) =>
+      _perform(() async {
+        final name = newName.trim();
+        final current = state.snapshot;
+        if (!current.settings.categories.contains(oldName)) {
+          throw const KepliException('The category no longer exists.');
+        }
+        final settings = current.settings.copyWith(
+          categories: current.settings.categories
+              .map((category) => category == oldName ? name : category)
+              .toList(),
+        );
+        settings.validate();
+        final now = DateTime.now().toUtc();
+        final renamed = VaultSnapshot(
+          items: current.items
+              .map(
+                (item) => item.category == oldName
+                    ? item.copyWith(category: name, updatedAt: now)
+                    : item,
+              )
+              .toList(),
+          settings: settings,
+        );
+        await _dependencies.repository.replaceSnapshot(renamed);
+        await _reload(notice: 'Settings saved.');
+      });
+
   Future<BackupPreview?> inspectBackup() => _perform(() async {
     final path = await _dependencies.files.pickBackup();
     if (path == null) return null;
@@ -177,23 +207,23 @@ class VaultController extends Notifier<VaultState> {
       keepLocalIds: keepLocalIds,
     );
     selectItem(null);
-    await _reload(notice: 'Backup restored. All referenced attachments verified.');
+    await _reload(
+      notice: 'Backup restored. All referenced attachments verified.',
+    );
   });
 
   Future<void> discardPreview(BackupPreview preview) =>
       _dependencies.backups.discardPreview(preview);
 
-  Future<void> _export(
-    Future<File> Function() generate,
-    Rect? shareOrigin,
-  ) => _perform(() async {
-    final file = await generate();
-    final notice = await _dependencies.files.saveOrShare(
-      file,
-      shareOrigin: shareOrigin,
-    );
-    if (notice != null) state = state.copyWith(notice: notice);
-  });
+  Future<void> _export(Future<File> Function() generate, Rect? shareOrigin) =>
+      _perform(() async {
+        final file = await generate();
+        final notice = await _dependencies.files.saveOrShare(
+          file,
+          shareOrigin: shareOrigin,
+        );
+        if (notice != null) state = state.copyWith(notice: notice);
+      });
 
   Future<void> exportBackup({Rect? shareOrigin}) =>
       _export(_dependencies.backups.exportBackup, shareOrigin);

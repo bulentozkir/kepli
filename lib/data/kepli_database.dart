@@ -50,7 +50,7 @@ class AppMeta extends Table {
 
 @DriftDatabase(tables: [Items, Attachments, AppMeta])
 class KepliDatabase extends _$KepliDatabase {
-  KepliDatabase(QueryExecutor executor) : super(executor);
+  KepliDatabase(QueryExecutor super.executor);
 
   @override
   int get schemaVersion => 1;

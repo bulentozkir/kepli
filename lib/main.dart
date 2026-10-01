@@ -1,122 +1,191 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import 'app.dart';
+import 'application/vault_controller.dart';
+import 'data/kepli_database.dart';
+import 'data/vault_repository.dart';
+import 'domain/models.dart';
+import 'l10n/app_localizations.dart';
+import 'services/backup_service.dart';
+import 'services/document_scanner.dart';
+import 'services/platform_files.dart';
+import 'services/reminder_service.dart';
+import 'services/report_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    for (final license in [
+      'OFL-Noto.txt',
+      'OFL-NotoSansSC.txt',
+      'OFL-NotoSansJP.txt',
+      'OFL-NotoSansKR.txt',
+    ]) {
+      yield LicenseEntryWithLineBreaks(const [
+        'Noto fonts',
+      ], await rootBundle.loadString('assets/fonts/$license'));
+    }
+  });
+  runApp(const KepliBootstrap());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+Future<AppDependencies> initializeKepli() async {
+  final support = await getApplicationSupportDirectory();
+  final temporary = await getTemporaryDirectory();
+  final root = Directory(p.join(support.path, 'vault'));
+  final staging = Directory(p.join(temporary.path, 'kepli'));
+  await root.create(recursive: true);
+  await staging.create(recursive: true);
+  final files = PlatformFiles(temporaryDirectory: staging);
+  await files.protectLocalStorage(root);
+  final database = KepliDatabase(
+    NativeDatabase.createInBackground(
+      File(p.join(root.path, 'kepli.db')),
+      setup: (database) => database.execute('PRAGMA temp_store = MEMORY'),
+    ),
+  );
+  final repository = VaultRepository(database: database, root: root);
+  var initialized = false;
+  try {
+    final snapshot = await repository.load();
+    final reminders = ReminderService();
+    final initialStatus = await reminders.initialize();
+    final status = initialStatus.supported
+        ? await reminders.reconcile(snapshot)
+        : initialStatus;
+    var recovered = <PendingAttachment>[];
+    String? notice;
+    try {
+      recovered = await files.recoverLostPhotos();
+    } on PlatformException catch (error, stack) {
+      debugPrintStack(label: error.toString(), stackTrace: stack);
+      notice = error.message ?? error.code;
+    } on KepliException catch (error, stack) {
+      debugPrintStack(label: error.toString(), stackTrace: stack);
+      notice = error.message;
+    }
+    final dependencies = AppDependencies(
+      repository: repository,
+      backups: BackupService(
+        repository: repository,
+        temporaryDirectory: staging,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      reports: ReportService(
+        repository: repository,
+        temporaryDirectory: staging,
+      ),
+      files: files,
+      reminders: reminders,
+      scanner: DocumentScanner(temporaryDirectory: staging),
+      initialSnapshot: snapshot,
+      initialReminderStatus: status,
+      recoveredPhotos: recovered,
+      startupNotice: notice,
     );
+    initialized = true;
+    return dependencies;
+  } finally {
+    if (!initialized) await repository.close();
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class KepliBootstrap extends StatefulWidget {
+  const KepliBootstrap({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<KepliBootstrap> createState() => _KepliBootstrapState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _KepliBootstrapState extends State<KepliBootstrap> {
+  late Future<AppDependencies> _initialization = initializeKepli();
+  AppDependencies? _dependencies;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  @override
+  void dispose() {
+    final dependencies = _dependencies;
+    if (dependencies != null) {
+      unawaited(dependencies.reminders.dispose());
+      unawaited(dependencies.repository.close());
+    }
+    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+  Widget build(BuildContext context) => FutureBuilder<AppDependencies>(
+    future: _initialization,
+    builder: (context, snapshot) {
+      if (snapshot.hasData) {
+        _dependencies = snapshot.requireData;
+        return ProviderScope(
+          overrides: [
+            dependenciesProvider.overrideWithValue(snapshot.requireData),
           ],
+          child: const KepliApp(),
+        );
+      }
+      return MaterialApp(
+        title: 'Kepli',
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildKepliTheme(Brightness.light, false, true),
+        darkTheme: buildKepliTheme(Brightness.dark, false, true),
+        home: Builder(
+          builder: (context) {
+            final strings = AppLocalizations.of(context);
+            return Scaffold(
+              appBar: AppBar(title: const Text('Kepli')),
+              body: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: snapshot.hasError
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Semantics(
+                                  liveRegion: true,
+                                  child: Text(strings.startupError),
+                                ),
+                                const SizedBox(height: 16),
+                                SelectableText(
+                                  '${strings.technicalDetails}: ${snapshot.error}',
+                                ),
+                                const SizedBox(height: 24),
+                                FilledButton.icon(
+                                  onPressed: () => setState(
+                                    () => _initialization = initializeKepli(),
+                                  ),
+                                  icon: const Icon(Icons.refresh),
+                                  label: Text(strings.retry),
+                                ),
+                              ],
+                            )
+                          : Semantics(
+                              label: strings.loading,
+                              liveRegion: true,
+                              child: const CircularProgressIndicator(),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
+      );
+    },
+  );
 }

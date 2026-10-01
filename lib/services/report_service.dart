@@ -10,15 +10,15 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:uuid/uuid.dart';
 
+import '../data/attachment_files.dart';
 import '../data/vault_repository.dart';
 import '../domain/models.dart';
 
 class ReportService {
   ReportService({
-    required VaultRepository repository,
+    required this._repository,
     required Directory temporaryDirectory,
-  }) : _repository = repository,
-       _temporaryDirectory = Directory(p.absolute(temporaryDirectory.path));
+  }) : _temporaryDirectory = Directory(p.absolute(temporaryDirectory.path));
 
   static const csvColumns = [
     'ID',
@@ -109,6 +109,12 @@ class ReportService {
     if (current == null) {
       throw const KepliException(
         'This warranty no longer exists. Refresh before exporting it.',
+      );
+    }
+    for (final attachment in current.attachments) {
+      await AttachmentFiles.verify(
+        _repository.attachmentFile(attachment),
+        attachment,
       );
     }
     final images = current.attachments.where(
@@ -287,8 +293,9 @@ class ReportService {
       );
       image = (await codec.getNextFrame()).image;
       final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (png == null)
+      if (png == null) {
         throw const KepliException('The decoded image could not be encoded.');
+      }
       return (
         image: pw.MemoryImage(
           png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
@@ -311,6 +318,13 @@ class ReportService {
   }
 
   Future<Directory> _newDirectory() async {
+    final managed = p.join(_repository.root.path, 'attachments');
+    if (p.equals(managed, _temporaryDirectory.path) ||
+        p.isWithin(managed, _temporaryDirectory.path)) {
+      throw const KepliException(
+        'Report staging must be outside the managed attachments directory.',
+      );
+    }
     final type = await FileSystemEntity.type(
       _temporaryDirectory.path,
       followLinks: false,

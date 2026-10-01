@@ -81,10 +81,12 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
         );
         selected = photo == null ? [] : [photo];
       } else {
-        selected = await files.pickAttachments(
-          role: _role,
-          contactId: widget.contactId,
-        );
+        selected = files.cameraAvailable
+            ? await files.pickPhotos(role: _role, contactId: widget.contactId)
+            : await files.pickAttachments(
+                role: _role,
+                contactId: widget.contactId,
+              );
       }
       final additions = <ScanPage>[];
       for (final file in selected) {
@@ -123,12 +125,15 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
       _error = null;
     });
     try {
-      final result = await ref.read(dependenciesProvider).scanner.createPdf(
-        pages: List.of(_pages),
-        name: _name.text.trim(),
-        role: _role,
-        contactId: widget.contactId,
-      );
+      final result = await ref
+          .read(dependenciesProvider)
+          .scanner
+          .createPdf(
+            pages: List.of(_pages),
+            name: _name.text.trim(),
+            role: _role,
+            contactId: widget.contactId,
+          );
       if (!mounted) return;
       setState(() => _leaving = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -159,7 +164,11 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
             icon: Icons.close,
             onPressed: _busy ? null : _leave,
           ),
-          title: Text(l10n.scanDocument, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(
+            l10n.scanDocument,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         body: SafeArea(
           child: PageBody(
@@ -208,13 +217,17 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
                         ActionButton(
                           label: l10n.takePhoto,
                           icon: Icons.add_a_photo_outlined,
-                          onPressed: _busy ? null : () => _addPages(camera: true),
+                          onPressed: _busy
+                              ? null
+                              : () => _addPages(camera: true),
                         ),
                       ActionButton(
                         key: const Key('scan-add-images'),
                         label: l10n.choosePhoto,
                         icon: Icons.add_photo_alternate_outlined,
-                        onPressed: _busy ? null : () => _addPages(camera: false),
+                        onPressed: _busy
+                            ? null
+                            : () => _addPages(camera: false),
                       ),
                     ],
                   ),
@@ -280,28 +293,32 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
                       value: page.cropTop,
                       onChanged: _busy
                           ? null
-                          : (value) => _updatePage(page.copyWith(cropTop: value)),
+                          : (value) =>
+                                _updatePage(page.copyWith(cropTop: value)),
                     ),
                     _CropSlider(
                       label: l10n.cropBottom,
                       value: page.cropBottom,
                       onChanged: _busy
                           ? null
-                          : (value) => _updatePage(page.copyWith(cropBottom: value)),
+                          : (value) =>
+                                _updatePage(page.copyWith(cropBottom: value)),
                     ),
                     _CropSlider(
                       label: l10n.cropLeft,
                       value: page.cropLeft,
                       onChanged: _busy
                           ? null
-                          : (value) => _updatePage(page.copyWith(cropLeft: value)),
+                          : (value) =>
+                                _updatePage(page.copyWith(cropLeft: value)),
                     ),
                     _CropSlider(
                       label: l10n.cropRight,
                       value: page.cropRight,
                       onChanged: _busy
                           ? null
-                          : (value) => _updatePage(page.copyWith(cropRight: value)),
+                          : (value) =>
+                                _updatePage(page.copyWith(cropRight: value)),
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -309,7 +326,8 @@ class _ScanDocumentScreenState extends ConsumerState<ScanDocumentScreen> {
                       value: page.enhance,
                       onChanged: _busy
                           ? null
-                          : (value) => _updatePage(page.copyWith(enhance: value)),
+                          : (value) =>
+                                _updatePage(page.copyWith(enhance: value)),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -398,9 +416,8 @@ class _ScanPreviewState extends State<_ScanPreview> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _stream?.removeListener(_listener);
-    _stream = FileImage(
-      File(widget.page.sourcePath),
-    ).resolve(createLocalImageConfiguration(context));
+    _stream = FileImage(File(widget.page.sourcePath))
+        .resolve(createLocalImageConfiguration(context));
     _stream!.addListener(_listener);
   }
 
@@ -438,16 +455,48 @@ class _ScanPreviewState extends State<_ScanPreview> {
                         colorFilter: ColorFilter.matrix(
                           page.enhance
                               ? const [
-                                  0.24449, 0.82244, 0.08307, 0, -19.125,
-                                  0.24449, 0.82244, 0.08307, 0, -19.125,
-                                  0.24449, 0.82244, 0.08307, 0, -19.125,
-                                  0, 0, 0, 1, 0,
+                                  0.24449,
+                                  0.82244,
+                                  0.08307,
+                                  0,
+                                  -19.125,
+                                  0.24449,
+                                  0.82244,
+                                  0.08307,
+                                  0,
+                                  -19.125,
+                                  0.24449,
+                                  0.82244,
+                                  0.08307,
+                                  0,
+                                  -19.125,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  0,
                                 ]
                               : const [
-                                  1, 0, 0, 0, 0,
-                                  0, 1, 0, 0, 0,
-                                  0, 0, 1, 0, 0,
-                                  0, 0, 0, 1, 0,
+                                  1,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  0,
                                 ],
                         ),
                         child: Image.file(
@@ -462,7 +511,8 @@ class _ScanPreviewState extends State<_ScanPreview> {
                     CustomPaint(
                       painter: _CropOverlay(
                         page: page,
-                        mask: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.65),
+                        mask: Theme.of(context).colorScheme.scrim
+                            .withValues(alpha: 0.65),
                         outline: Theme.of(context).colorScheme.primary,
                       ),
                     ),

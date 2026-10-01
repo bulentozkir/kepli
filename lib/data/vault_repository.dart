@@ -18,9 +18,8 @@ class VaultCleanupException extends KepliException {
 }
 
 class VaultRepository {
-  VaultRepository({required KepliDatabase database, required Directory root})
-    : _database = database,
-      root = Directory(p.normalize(p.absolute(root.path)));
+  VaultRepository({required this._database, required Directory root})
+    : root = Directory(p.normalize(p.absolute(root.path)));
 
   final KepliDatabase _database;
   final Directory root;
@@ -37,7 +36,6 @@ class VaultRepository {
       _lock.synchronized(() async {
         await _initialize();
         final snapshot = await _readSnapshot();
-        await _verifyFiles(snapshot);
         return action(snapshot);
       });
 
@@ -279,8 +277,7 @@ class VaultRepository {
             );
       }
     });
-    final snapshot = await _readSnapshot();
-    await _verifyFiles(snapshot);
+    await _readSnapshot();
     _initialized = true;
     await _cleanupCommitted();
   }
@@ -457,14 +454,6 @@ class VaultRepository {
             'Attachment identifiers and paths must be unique ignoring case.',
           );
         }
-      }
-    }
-  }
-
-  Future<void> _verifyFiles(VaultSnapshot snapshot) async {
-    for (final item in snapshot.items) {
-      for (final attachment in item.attachments) {
-        await AttachmentFiles.verify(attachmentFile(attachment), attachment);
       }
     }
   }

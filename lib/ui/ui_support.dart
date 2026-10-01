@@ -7,16 +7,17 @@ import '../domain/models.dart';
 import '../l10n/app_localizations.dart';
 
 extension LocalizedContext on BuildContext {
-  AppLocalizations get l10n => AppLocalizations.of(this)!;
+  AppLocalizations get l10n => AppLocalizations.of(this);
 }
 
-String categoryLabel(BuildContext context, String category) => switch (category) {
-  'Electronics' => context.l10n.categoryElectronics,
-  'Appliances' => context.l10n.categoryAppliances,
-  'Tools' => context.l10n.categoryTools,
-  'Other' => context.l10n.categoryOther,
-  _ => category,
-};
+String categoryLabel(BuildContext context, String category) =>
+    switch (category) {
+      'Electronics' => context.l10n.categoryElectronics,
+      'Appliances' => context.l10n.categoryAppliances,
+      'Tools' => context.l10n.categoryTools,
+      'Other' => context.l10n.categoryOther,
+      _ => category,
+    };
 
 String attachmentRoleLabel(BuildContext context, AttachmentRole role) =>
     switch (role) {
@@ -26,10 +27,11 @@ String attachmentRoleLabel(BuildContext context, AttachmentRole role) =>
       AttachmentRole.businessCard => context.l10n.businessCard,
     };
 
-String contactRoleLabel(BuildContext context, ContactRole role) => switch (role) {
-  ContactRole.sales => context.l10n.salesContact,
-  ContactRole.service => context.l10n.serviceContact,
-};
+String contactRoleLabel(BuildContext context, ContactRole role) =>
+    switch (role) {
+      ContactRole.sales => context.l10n.salesContact,
+      ContactRole.service => context.l10n.serviceContact,
+    };
 
 String dateLabel(BuildContext context, CalendarDate date) =>
     DateFormat.yMMMd(context.l10n.localeName).format(date.localDate);
@@ -37,34 +39,107 @@ String dateLabel(BuildContext context, CalendarDate date) =>
 String numberLabel(BuildContext context, num value) =>
     NumberFormat.decimalPattern(context.l10n.localeName).format(value);
 
-String? optionalText(String value) => value.trim().isEmpty ? null : value.trim();
+String? optionalText(String value) =>
+    value.trim().isEmpty ? null : value.trim();
 
 String normalizedDigits(String value) {
   const zeroes = [
-    0x0660, 0x06f0, 0x0966, 0x09e6, 0x0a66, 0x0ae6, 0x0b66,
-    0x0be6, 0x0c66, 0x0ce6, 0x0d66, 0x0e50,
+    0x0660,
+    0x06f0,
+    0x0966,
+    0x09e6,
+    0x0a66,
+    0x0ae6,
+    0x0b66,
+    0x0be6,
+    0x0c66,
+    0x0ce6,
+    0x0d66,
+    0x0e50,
   ];
-  return String.fromCharCodes(value.runes.map((rune) {
-    for (final zero in zeroes) {
-      if (rune >= zero && rune < zero + 10) return 0x30 + rune - zero;
-    }
-    return rune;
-  }));
+  return String.fromCharCodes(
+    value.runes.map((rune) {
+      for (final zero in zeroes) {
+        if (rune >= zero && rune < zero + 10) return 0x30 + rune - zero;
+      }
+      return rune;
+    }),
+  );
 }
 
 String normalizedPrice(BuildContext context, String value) {
-  final decimal = NumberFormat.decimalPattern(
-    context.l10n.localeName,
-  ).symbols.DECIMAL_SEP;
+  final decimal = NumberFormat.decimalPattern(context.l10n.localeName)
+      .symbols
+      .DECIMAL_SEP;
   return normalizedDigits(value.trim()).replaceAll(decimal, '.');
 }
 
+String? noticeLabel(BuildContext context, String notice) {
+  final l10n = context.l10n;
+  final text = switch (notice) {
+    'Warranty saved on this device.' => l10n.saved,
+    'Warranty and its attachments deleted.' => l10n.deleted,
+    'Settings saved.' => l10n.settingsSaved,
+    'Backup restored. All referenced attachments verified.' => l10n.restored,
+    'Export ready.' => l10n.exportReady,
+    'Export cancelled.' => l10n.exportCancelled,
+    'Choose where to save or send the file in the share sheet.' =>
+      l10n.shareOpened,
+    'Export handed to the selected app. Finish saving or sharing there.' =>
+      l10n.shareOpened,
+    _ => null,
+  };
+  if (text != null) return text;
+  for (final prefix in ['File saved to ', 'Saved to ']) {
+    if (notice.startsWith(prefix)) {
+      return l10n.fileSavedTo(notice.substring(prefix.length));
+    }
+  }
+  return null;
+}
+
+class NoticePanel extends StatelessWidget {
+  const NoticePanel({super.key, required this.notice, required this.onDismiss});
+  final String notice;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = noticeLabel(context, notice);
+    return Semantics(
+      liveRegion: true,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(label ?? context.l10n.operationFailed),
+              if (label == null) ErrorDetails(error: notice),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton(
+                  onPressed: onDismiss,
+                  child: Text(context.l10n.dismiss),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 Rect shareOriginFor(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
   final object = context.findRenderObject();
   if (object is RenderBox && object.hasSize && !object.size.isEmpty) {
-    return object.localToGlobal(Offset.zero) & object.size;
+    final origin = (object.localToGlobal(Offset.zero) & object.size).intersect(
+      Offset.zero & size,
+    );
+    if (!origin.isEmpty) return origin;
   }
-  final size = MediaQuery.sizeOf(context);
   return Rect.fromLTWH(size.width / 2, size.height / 2, 1, 1);
 }
 
@@ -248,7 +323,9 @@ class ChoiceField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = choices.where((choice) => choice.value == value).firstOrNull;
+    final selected = choices
+        .where((choice) => choice.value == value)
+        .firstOrNull;
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(48, 64),
@@ -269,7 +346,9 @@ class ChoiceField<T> extends StatelessWidget {
                       children: [
                         for (final choice in choices)
                           Padding(
-                            padding: const EdgeInsetsDirectional.only(bottom: 8),
+                            padding: const EdgeInsetsDirectional.only(
+                              bottom: 8,
+                            ),
                             child: Semantics(
                               selected: choice.value == value,
                               child: ActionButton(
@@ -392,10 +471,7 @@ class ErrorDetails extends StatelessWidget {
       tilePadding: EdgeInsets.zero,
       expandedAlignment: AlignmentDirectional.centerStart,
       title: Text(context.l10n.technicalDetails),
-      children: [
-        SelectableText(error.toString()),
-        const SizedBox(height: 12),
-      ],
+      children: [SelectableText(error.toString()), const SizedBox(height: 12)],
     ),
   );
 }

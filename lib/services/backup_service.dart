@@ -29,12 +29,10 @@ class BackupPreview {
     required this.platform,
     required List<BackupConflict> conflicts,
     required this.newItemCount,
-    required Object owner,
-    required Directory staging,
+    required this._owner,
+    required this._staging,
     required Map<String, String> files,
   }) : conflicts = List.unmodifiable(conflicts),
-       _owner = owner,
-       _staging = staging,
        _files = Map.unmodifiable(files);
 
   final VaultSnapshot snapshot;
@@ -49,11 +47,10 @@ class BackupPreview {
 
 class BackupService {
   BackupService({
-    required VaultRepository repository,
+    required this._repository,
     required Directory temporaryDirectory,
     String? platform,
-  }) : _repository = repository,
-       _temporaryDirectory = Directory(p.absolute(temporaryDirectory.path)),
+  }) : _temporaryDirectory = Directory(p.absolute(temporaryDirectory.path)),
        _platform = platform ?? Platform.operatingSystem;
 
   // Safety limits apply before decompression and to actual streamed output.
@@ -112,6 +109,10 @@ class BackupService {
           archive.ArchiveFile.bytes('manifest.json', manifest),
         );
         for (final attachment in attachments) {
+          await AttachmentFiles.verify(
+            _repository.attachmentFile(attachment),
+            attachment,
+          );
           await encoder.addFile(
             _repository.attachmentFile(attachment),
             attachment.relativePath,
@@ -246,7 +247,7 @@ class BackupService {
       return preview;
     } catch (error) {
       await _removeFailedDirectory(directory, error);
-      if (error is FormatException || error is ZLibException) {
+      if (error is FormatException) {
         throw KepliException(
           'The backup is corrupt or has invalid JSON: $error',
         );
@@ -384,6 +385,13 @@ class BackupService {
   }
 
   Future<Directory> _newDirectory(String purpose) async {
+    final managed = p.join(_repository.root.path, 'attachments');
+    if (p.equals(managed, _temporaryDirectory.path) ||
+        p.isWithin(managed, _temporaryDirectory.path)) {
+      throw const KepliException(
+        'Backup staging must be outside the managed attachments directory.',
+      );
+    }
     final type = await FileSystemEntity.type(
       _temporaryDirectory.path,
       followLinks: false,
@@ -545,8 +553,9 @@ class _SafeZip {
           break;
         }
       }
-      if (eocd < 0)
+      if (eocd < 0) {
         throw const KepliException('This is not a complete ZIP file.');
+      }
       int end16(int offset) => tailData.getUint16(eocd + offset, Endian.little);
       int end32(int offset) => tailData.getUint32(eocd + offset, Endian.little);
       final count = end16(10);
@@ -743,8 +752,9 @@ class _SafeZip {
     }
     await input.setPosition(offset);
     final result = await input.read(length);
-    if (result.length != length)
+    if (result.length != length) {
       throw const KepliException('The ZIP is truncated.');
+    }
     return result;
   }
 
@@ -752,8 +762,9 @@ class _SafeZip {
     final data = ByteData.sublistView(bytes);
     final end = offset + length;
     while (offset < end) {
-      if (offset + 4 > end)
+      if (offset + 4 > end) {
         throw const KepliException('A ZIP extra field is corrupt.');
+      }
       final id = data.getUint16(offset, Endian.little);
       final size = data.getUint16(offset + 2, Endian.little);
       if (id == 1 || id == 0x9901) {
@@ -762,8 +773,9 @@ class _SafeZip {
         );
       }
       offset += 4 + size;
-      if (offset > end)
+      if (offset > end) {
         throw const KepliException('A ZIP extra field is truncated.');
+      }
     }
   }
 
