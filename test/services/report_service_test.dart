@@ -169,8 +169,8 @@ void main() {
     final ascii = latin1.decode(bytes);
     expect(ascii, startsWith('%PDF-1.'));
     expect(ascii.substring(ascii.length - 30), contains('%%EOF'));
-    expect(ascii, contains('/Type /Catalog'));
-    expect(ascii, contains('/Subtype /Image'));
+    expect(RegExp(r'/Type\s*/Catalog').hasMatch(ascii), isTrue);
+    expect(RegExp(r'/Subtype\s*/Image').hasMatch(ascii), isTrue);
     expect(ascii, contains('/Font'));
     expect(bytes.length, greaterThan(1000));
     expect(

@@ -372,13 +372,17 @@ class PlatformFiles {
       final sink = file.openWrite();
       try {
         var length = 0;
-        await sink.addStream(bytes.map((chunk) {
-          length += chunk.length;
-          if (maxBytes != null && length > maxBytes) {
-            throw const KepliException('An attachment exceeds the 25 MiB limit.');
-          }
-          return chunk;
-        }));
+        await sink.addStream(
+          bytes.map((chunk) {
+            length += chunk.length;
+            if (maxBytes != null && length > maxBytes) {
+              throw const KepliException(
+                'An attachment exceeds the 25 MiB limit.',
+              );
+            }
+            return chunk;
+          }),
+        );
         await sink.flush();
       } finally {
         await sink.close();

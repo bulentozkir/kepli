@@ -383,32 +383,37 @@ void main() {
     },
   );
 
-  test('missing receipts do not discard metadata or prevent recovery', () async {
-    final original = await harness.saveWithPdf(sampleItem());
-    await harness.repository
-        .attachmentFile(original.attachments.single)
-        .delete();
-    expect(
-      (await harness.repository.load()).items.single.toJson(),
-      original.toJson(),
-    );
-    expect(
-      await harness.database.select(harness.database.items).get(),
-      hasLength(1),
-    );
-    final replacement = await harness.source(smallPdf);
-    await harness.repository.replaceSnapshot(
-      VaultSnapshot(items: [original], settings: AppSettings()),
-      incomingFiles: {
-        original.attachments.single.relativePath: replacement.path,
-      },
-    );
-    final recovered = (await harness.repository.load()).items.single;
-    expect(
-      await harness.repository.attachmentFile(recovered.attachments.single).readAsBytes(),
-      smallPdf,
-    );
-  });
+  test(
+    'missing receipts do not discard metadata or prevent recovery',
+    () async {
+      final original = await harness.saveWithPdf(sampleItem());
+      await harness.repository
+          .attachmentFile(original.attachments.single)
+          .delete();
+      expect(
+        (await harness.repository.load()).items.single.toJson(),
+        original.toJson(),
+      );
+      expect(
+        await harness.database.select(harness.database.items).get(),
+        hasLength(1),
+      );
+      final replacement = await harness.source(smallPdf);
+      await harness.repository.replaceSnapshot(
+        VaultSnapshot(items: [original], settings: AppSettings()),
+        incomingFiles: {
+          original.attachments.single.relativePath: replacement.path,
+        },
+      );
+      final recovered = (await harness.repository.load()).items.single;
+      expect(
+        await harness.repository
+            .attachmentFile(recovered.attachments.single)
+            .readAsBytes(),
+        smallPdf,
+      );
+    },
+  );
 
   test(
     'real SQLite restart preserves settings and files and cleans crash orphans',

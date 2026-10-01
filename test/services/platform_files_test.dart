@@ -219,26 +219,37 @@ void main() {
     );
   });
 
-  test('oversize attachments are rejected before filling local storage', () async {
-    picker.files = [_MemoryFile('huge.png', Uint8List(25 * 1024 * 1024 + 1))];
-    await expectLater(
-      files.pickAttachments(role: AttachmentRole.receipt),
-      throwsA(isA<KepliException>().having(
-        (error) => error.message, 'message', contains('25 MiB'),
-      )),
-    );
-    expect(
-      await Directory(p.join(work.path, 'imports')).list().toList(),
-      isEmpty,
-    );
-  });
+  test(
+    'oversize attachments are rejected before filling local storage',
+    () async {
+      picker.files = [_MemoryFile('huge.png', Uint8List(25 * 1024 * 1024 + 1))];
+      await expectLater(
+        files.pickAttachments(role: AttachmentRole.receipt),
+        throwsA(
+          isA<KepliException>().having(
+            (error) => error.message,
+            'message',
+            contains('25 MiB'),
+          ),
+        ),
+      );
+      expect(
+        await Directory(p.join(work.path, 'imports')).list().toList(),
+        isEmpty,
+      );
+    },
+  );
 
   test('opening a missing attachment returns an actionable error', () async {
     await expectLater(
       files.openAttachment(File(p.join(work.path, 'missing.pdf'))),
-      throwsA(isA<KepliException>().having(
-        (error) => error.message, 'message', contains('no longer available'),
-      )),
+      throwsA(
+        isA<KepliException>().having(
+          (error) => error.message,
+          'message',
+          contains('no longer available'),
+        ),
+      ),
     );
   });
 

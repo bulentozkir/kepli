@@ -537,17 +537,24 @@ void main() {
     },
   );
 
-  test('reports missing local files on export but permits a restoring replacement', () async {
-    final original = await local.saveWithPdf(sampleItem());
-    await local.repository.attachmentFile(original.attachments.single).delete();
-    await expectLater(service.exportBackup(), throwsA(isA<KepliException>()));
-    await remote.saveWithPdf(sampleItem());
-    final preview = await service.inspectBackup((await remoteExport()).path);
-    await service.restore(preview, RestoreMode.replace);
-    final restored = (await local.repository.load()).items.single;
-    expect(
-      await local.repository.attachmentFile(restored.attachments.single).readAsBytes(),
-      smallPdf,
-    );
-  });
+  test(
+    'reports missing local files on export but permits a restoring replacement',
+    () async {
+      final original = await local.saveWithPdf(sampleItem());
+      await local.repository
+          .attachmentFile(original.attachments.single)
+          .delete();
+      await expectLater(service.exportBackup(), throwsA(isA<KepliException>()));
+      await remote.saveWithPdf(sampleItem());
+      final preview = await service.inspectBackup((await remoteExport()).path);
+      await service.restore(preview, RestoreMode.replace);
+      final restored = (await local.repository.load()).items.single;
+      expect(
+        await local.repository
+            .attachmentFile(restored.attachments.single)
+            .readAsBytes(),
+        smallPdf,
+      );
+    },
+  );
 }

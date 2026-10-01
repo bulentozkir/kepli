@@ -27,6 +27,8 @@ class VaultRepository {
   bool _initialized = false;
   bool _closed = false;
 
+  /// Keep metadata readable after external file loss so a restore can repair
+  /// it. Exports and any retained/imported files are integrity-checked before use.
   Future<VaultSnapshot> load() => withSnapshot((snapshot) async => snapshot);
 
   /// Keeps both metadata and immutable attachment files stable for the callback.
