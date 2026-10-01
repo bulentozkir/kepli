@@ -161,7 +161,9 @@ DateTime jsonTimestamp(Map<String, dynamic> json, String key) {
       int.parse(match.group(4)!) > 59 ||
       (match.group(6) != null && int.parse(match.group(6)!) > 23) ||
       (match.group(7) != null && int.parse(match.group(7)!) > 59)) {
-    throw KepliException('The backup field "$key" needs a valid timestamp and time zone.');
+    throw KepliException(
+      'The backup field "$key" needs a valid timestamp and time zone.',
+    );
   }
   CalendarDate.parse(match.group(1)!);
   return parsed.toUtc();

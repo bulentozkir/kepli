@@ -18,6 +18,7 @@
   "expiringSoon": "Sắp hết hạn",
   "expired": "Đã hết hạn",
   "claimed": "Đã yêu cầu bảo hành",
+  "status": "Trạng thái",
   "noWarranties": "Chưa có bảo hành nào",
   "getStarted": "Thêm một giao dịch mua và lưu biên lai, giấy bảo hành cùng thông tin liên hệ ở một nơi.",
   "noMatches": "Không có bảo hành phù hợp",

@@ -30,6 +30,7 @@ WarrantyItem sampleItem({
   DateTime? updatedAt,
   bool claimed = false,
   List<WarrantyAttachment> attachments = const [],
+  List<ItemContact> contacts = const [],
 }) => WarrantyItem(
   id: id,
   name: name,
@@ -43,6 +44,7 @@ WarrantyItem sampleItem({
   createdAt: createdAt ?? DateTime.utc(2024, 2, 1, 10, 20, 30, 123, 456),
   updatedAt: updatedAt ?? DateTime.utc(2024, 2, 2, 10, 20, 30, 123, 456),
   attachments: attachments,
+  contacts: contacts,
   claimed: claimed,
 );
 

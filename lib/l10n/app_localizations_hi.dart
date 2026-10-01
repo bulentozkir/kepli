@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get claimed => 'दावा किया गया';
 
   @override
+  String get status => 'स्थिति';
+
+  @override
   String get noWarranties => 'अभी कोई वारंटी नहीं है';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get years => 'वर्ष';
+
+  @override
+  String get customDuration => 'मनचाही अवधि';
 
   @override
   String get name => 'नाम';
@@ -230,6 +235,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get backupPreview => 'बैकअप की समीक्षा करें';
 
   @override
+  String get newWarranties => 'नई वारंटियाँ';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items वारंटियाँ और $files संलग्नक';
   }
@@ -291,7 +299,14 @@ class AppLocalizationsHi extends AppLocalizations {
       'मानों को कॉमा से अलग करें, जैसे 30, 7, 1। समाप्ति की तारीख के लिए 0 लिखें।';
 
   @override
+  String get invalidReminderDays =>
+      '1 से 12 अलग-अलग मान दर्ज करें, हर मान 0 से 3,650 दिनों के बीच होना चाहिए।';
+
+  @override
   String get reminderHour => 'रिमाइंडर का घंटा (0–23)';
+
+  @override
+  String get invalidReminderHour => '0 से 23 के बीच का घंटा दर्ज करें।';
 
   @override
   String get reminderLimit =>

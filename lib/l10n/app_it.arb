@@ -18,6 +18,7 @@
   "expiringSoon": "In scadenza",
   "expired": "Scadute",
   "claimed": "Richiesta in garanzia presentata",
+  "status": "Stato",
   "noWarranties": "Non ci sono ancora garanzie",
   "getStarted": "Aggiungi un acquisto e conserva insieme la ricevuta, i documenti di garanzia e i contatti.",
   "noMatches": "Nessuna garanzia corrispondente",

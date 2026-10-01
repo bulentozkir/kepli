@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get claimed => 'Заявку подано';
 
   @override
+  String get status => 'Статус';
+
+  @override
   String get noWarranties => 'Гарантій поки немає';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get years => 'Роки';
+
+  @override
+  String get customDuration => 'Довільний строк';
 
   @override
   String get name => 'Назва';
@@ -234,6 +239,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get backupPreview => 'Переглянути резервну копію';
 
   @override
+  String get newWarranties => 'Нові гарантії';
+
+  @override
   String backupSummary(int items, int files) {
     return 'Гарантії: $items; вкладення: $files';
   }
@@ -295,7 +303,14 @@ class AppLocalizationsUk extends AppLocalizations {
       'Відокремлюйте значення комами, наприклад 30, 7, 1. Використовуйте 0 для дати закінчення.';
 
   @override
+  String get invalidReminderDays =>
+      'Введіть від 1 до 12 значень без повторів, кожне в діапазоні від 0 до 3 650 днів.';
+
+  @override
   String get reminderHour => 'Година нагадування (0–23)';
+
+  @override
+  String get invalidReminderHour => 'Введіть годину від 0 до 23.';
 
   @override
   String get reminderLimit =>

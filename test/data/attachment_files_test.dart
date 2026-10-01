@@ -126,28 +126,25 @@ void main() {
     );
   });
 
-  test(
-    'enforces the conservative 25 MiB size cap before reading content',
-    () async {
-      final oversized = await source.open(mode: FileMode.writeOnly);
-      await oversized.truncate(AttachmentFiles.maxAttachmentBytes + 1);
-      await oversized.close();
-      final target = await AttachmentFiles.create(
-        root,
-        itemId,
-        'application/pdf',
-      );
-      await expectLater(
-        AttachmentFiles.copy(
-          source: source,
-          target: target,
-          mimeType: 'application/pdf',
-        ),
-        throwsA(isA<KepliException>()),
-      );
-      expect(await target.length(), 0);
-    },
-  );
+  test('enforces the 256 MiB safety cap before reading content', () async {
+    final oversized = await source.open(mode: FileMode.writeOnly);
+    await oversized.truncate(AttachmentFiles.maxAttachmentBytes + 1);
+    await oversized.close();
+    final target = await AttachmentFiles.create(
+      root,
+      itemId,
+      'application/pdf',
+    );
+    await expectLater(
+      AttachmentFiles.copy(
+        source: source,
+        target: target,
+        mimeType: 'application/pdf',
+      ),
+      throwsA(isA<KepliException>()),
+    );
+    expect(await target.length(), 0);
+  });
 
   test('rejects traversal, absolute paths and invalid filename UUIDs', () {
     for (final path in [

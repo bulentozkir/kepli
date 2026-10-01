@@ -1,6 +1,7 @@
 {
   "@@locale": "ar",
   "appTitle": "Kepli",
+  "status": "الحالة",
   "tagline": "ضماناتك. إيصالاتك. ملكك.",
   "warranties": "الضمانات",
   "backups": "النسخ الاحتياطية",

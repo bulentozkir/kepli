@@ -51,38 +51,41 @@ void main() {
     expect(after.settings.toJson(), before.settings.toJson());
   }
 
-  test('exports exact schema, platform-independent paths, settings and hashed bytes', () async {
-    final item = await local.saveWithPdf(sampleItem());
-    final zip = await service.exportBackup();
-    expect(
-      zip.uri.pathSegments.last,
-      matches(r'^kepli-backup-\d{8}-\d{6}\.zip$'),
-    );
-    final decoded = archive.ZipDecoder().decodeBytes(await zip.readAsBytes());
-    final manifest = jsonDecode(
-      utf8.decode(decoded.findFile('manifest.json')!.content),
-    ) as Map<String, dynamic>;
-    expect(manifest['schema_version'], 1);
-    expect(manifest['exported_by_platform'], 'linux');
-    expect((manifest['exported_at'] as String).endsWith('Z'), isTrue);
-    expect(
-      manifest['settings'],
-      (await local.repository.load()).settings.toJson(),
-    );
-    expect(manifest['items'], [item.toJson()]);
-    expect(
-      decoded.files.map((entry) => entry.name),
-      everyElement(isNot(contains(r'\'))),
-    );
-    expect(
-      decoded.findFile(item.attachments.single.relativePath)!.content,
-      smallPdf,
-    );
-    final preview = await service.inspectBackup(zip.path);
-    expect(preview.conflicts, hasLength(1));
-    expect(preview.newItemCount, 0);
-    await service.discardPreview(preview);
-  });
+  test(
+    'exports exact schema, platform-independent paths, settings and hashed bytes',
+    () async {
+      final item = await local.saveWithPdf(sampleItem());
+      final zip = await service.exportBackup();
+      expect(
+        zip.uri.pathSegments.last,
+        matches(r'^kepli-backup-\d{8}-\d{6}\.zip$'),
+      );
+      final decoded = archive.ZipDecoder().decodeBytes(await zip.readAsBytes());
+      final manifest =
+          jsonDecode(utf8.decode(decoded.findFile('manifest.json')!.content))
+              as Map<String, dynamic>;
+      expect(manifest['schema_version'], 1);
+      expect(manifest['exported_by_platform'], 'linux');
+      expect((manifest['exported_at'] as String).endsWith('Z'), isTrue);
+      expect(
+        manifest['settings'],
+        (await local.repository.load()).settings.toJson(),
+      );
+      expect(manifest['items'], [item.toJson()]);
+      expect(
+        decoded.files.map((entry) => entry.name),
+        everyElement(isNot(contains(r'\'))),
+      );
+      expect(
+        decoded.findFile(item.attachments.single.relativePath)!.content,
+        smallPdf,
+      );
+      final preview = await service.inspectBackup(zip.path);
+      expect(preview.conflicts, hasLength(1));
+      expect(preview.newItemCount, 0);
+      await service.discardPreview(preview);
+    },
+  );
 
   for (final platform in ['android', 'ios', 'windows', 'linux', 'macos']) {
     test(
@@ -124,66 +127,72 @@ void main() {
     );
   });
 
-  test('merge is whole-item newest UTC wins, with local settings and category union', () async {
-    final old = await local.saveWithPdf(sampleItem(name: 'Local'));
-    final oldFile = local.repository.attachmentFile(old.attachments.single);
-    await local.repository.saveSettings(
-      AppSettings(reminderDays: [10], reminderHour: 8, currency: 'GBP'),
-    );
-    await remote.repository.saveItem(
-      sampleItem(
-        name: 'Incoming whole item',
-        category: 'Vehicles',
-        notes: null,
-        updatedAt: DateTime.parse('2024-02-02T23:30:30.123456+13:00'),
-      ),
-    );
-    await remote.repository.saveSettings(
-      AppSettings(
-        categories: ['Vehicles'],
-        reminderDays: [2],
-        remindersEnabled: true,
-        currency: 'EUR',
-      ),
-    );
-    final preview = await service.inspectBackup((await remoteExport()).path);
-    await service.restore(preview, RestoreMode.merge);
-    final restored = await local.repository.load();
-    expect(restored.items.single.name, 'Incoming whole item');
-    expect(restored.items.single.notes, isNull);
-    expect(restored.items.single.attachments, isEmpty);
-    expect(await oldFile.exists(), isFalse);
-    expect(restored.settings.reminderDays, [10]);
-    expect(restored.settings.reminderHour, 8);
-    expect(restored.settings.currency, 'GBP');
-    expect(restored.settings.remindersEnabled, isFalse);
-    expect(restored.settings.categories, containsAll(['Tools', 'Vehicles']));
-  });
+  test(
+    'merge is whole-item newest UTC wins, with local settings and category union',
+    () async {
+      final old = await local.saveWithPdf(sampleItem(name: 'Local'));
+      final oldFile = local.repository.attachmentFile(old.attachments.single);
+      await local.repository.saveSettings(
+        AppSettings(reminderDays: [10], reminderHour: 8, currency: 'GBP'),
+      );
+      await remote.repository.saveItem(
+        sampleItem(
+          name: 'Incoming whole item',
+          category: 'Vehicles',
+          notes: null,
+          updatedAt: DateTime.parse('2024-02-02T23:30:30.123456+13:00'),
+        ),
+      );
+      await remote.repository.saveSettings(
+        AppSettings(
+          categories: ['Vehicles'],
+          reminderDays: [2],
+          remindersEnabled: true,
+          currency: 'EUR',
+        ),
+      );
+      final preview = await service.inspectBackup((await remoteExport()).path);
+      await service.restore(preview, RestoreMode.merge);
+      final restored = await local.repository.load();
+      expect(restored.items.single.name, 'Incoming whole item');
+      expect(restored.items.single.notes, isNull);
+      expect(restored.items.single.attachments, isEmpty);
+      expect(await oldFile.exists(), isFalse);
+      expect(restored.settings.reminderDays, [10]);
+      expect(restored.settings.reminderHour, 8);
+      expect(restored.settings.currency, 'GBP');
+      expect(restored.settings.remindersEnabled, isFalse);
+      expect(restored.settings.categories, containsAll(['Tools', 'Vehicles']));
+    },
+  );
 
-  test('merge ties keep local and explicit keepLocalIds overrides a newer incoming item', () async {
-    final original = await local.saveWithPdf(sampleItem(name: 'Keep me'));
-    await remote.repository.saveItem(sampleItem(name: 'Same timestamp'));
-    final tie = await service.inspectBackup((await remoteExport()).path);
-    expect(tie.conflicts.single.incomingIsNewer, isFalse);
-    await service.restore(tie, RestoreMode.merge);
-    expect(
-      (await local.repository.load()).items.single.toJson(),
-      original.toJson(),
-    );
-    await remote.repository.saveItem(
-      sampleItem(name: 'Newer', updatedAt: DateTime.utc(2028)),
-    );
-    final newer = await service.inspectBackup((await remoteExport()).path);
-    await service.restore(
-      newer,
-      RestoreMode.merge,
-      keepLocalIds: {firstItemId},
-    );
-    expect(
-      (await local.repository.load()).items.single.toJson(),
-      original.toJson(),
-    );
-  });
+  test(
+    'merge ties keep local and explicit keepLocalIds overrides a newer incoming item',
+    () async {
+      final original = await local.saveWithPdf(sampleItem(name: 'Keep me'));
+      await remote.repository.saveItem(sampleItem(name: 'Same timestamp'));
+      final tie = await service.inspectBackup((await remoteExport()).path);
+      expect(tie.conflicts.single.incomingIsNewer, isFalse);
+      await service.restore(tie, RestoreMode.merge);
+      expect(
+        (await local.repository.load()).items.single.toJson(),
+        original.toJson(),
+      );
+      await remote.repository.saveItem(
+        sampleItem(name: 'Newer', updatedAt: DateTime.utc(2028)),
+      );
+      final newer = await service.inspectBackup((await remoteExport()).path);
+      await service.restore(
+        newer,
+        RestoreMode.merge,
+        keepLocalIds: {firstItemId},
+      );
+      expect(
+        (await local.repository.load()).items.single.toJson(),
+        original.toJson(),
+      );
+    },
+  );
 
   test(
     'merge rechecks live data rather than trusting stale preview conflicts',
@@ -204,54 +213,60 @@ void main() {
     },
   );
 
-  test('idempotent reimport preserves attachment identity and immutable local filename', () async {
-    await remote.saveWithPdf(sampleItem());
-    final zip = await remoteExport();
-    final firstPreview = await service.inspectBackup(zip.path);
-    await service.restore(firstPreview, RestoreMode.merge);
-    final first = (await local.repository.load()).items.single;
-    await service.restore(firstPreview, RestoreMode.merge);
-    final secondPreview = await service.inspectBackup(zip.path);
-    await service.restore(secondPreview, RestoreMode.merge);
-    final finalSnapshot = await local.repository.load();
-    expect(finalSnapshot.items, hasLength(1));
-    expect(finalSnapshot.items.single.toJson(), first.toJson());
-  });
+  test(
+    'idempotent reimport preserves attachment identity and immutable local filename',
+    () async {
+      await remote.saveWithPdf(sampleItem());
+      final zip = await remoteExport();
+      final firstPreview = await service.inspectBackup(zip.path);
+      await service.restore(firstPreview, RestoreMode.merge);
+      final first = (await local.repository.load()).items.single;
+      await service.restore(firstPreview, RestoreMode.merge);
+      final secondPreview = await service.inspectBackup(zip.path);
+      await service.restore(secondPreview, RestoreMode.merge);
+      final finalSnapshot = await local.repository.load();
+      expect(finalSnapshot.items, hasLength(1));
+      expect(finalSnapshot.items.single.toJson(), first.toJson());
+    },
+  );
 
-  test('replace restores the complete snapshot and preferences using fresh filenames', () async {
-    final original = await local.saveWithPdf(sampleItem());
-    final oldFile = local.repository.attachmentFile(
-      original.attachments.single,
-    );
-    final incoming = await remote.saveWithPdf(
-      sampleItem(id: secondItemId, category: 'Vehicles'),
-    );
-    await remote.repository.saveSettings(
-      AppSettings(
-        categories: ['Vehicles'],
-        reminderDays: [5, 2],
-        reminderHour: 12,
-        remindersEnabled: true,
-        currency: 'EUR',
-      ),
-    );
-    final preview = await service.inspectBackup((await remoteExport()).path);
-    await service.restore(preview, RestoreMode.replace);
-    final snapshot = await local.repository.load();
-    expect(snapshot.items.single.id, secondItemId);
-    expect(snapshot.settings.toJson(), preview.snapshot.settings.toJson());
-    expect(
-      snapshot.items.single.attachments.single.relativePath,
-      isNot(incoming.attachments.single.relativePath),
-    );
-    expect(await oldFile.exists(), isFalse);
-    expect(
-      await local.repository
-          .attachmentFile(snapshot.items.single.attachments.single)
-          .readAsBytes(),
-      smallPdf,
-    );
-  });
+  test(
+    'replace restores the complete snapshot and preferences using fresh filenames',
+    () async {
+      final original = await local.saveWithPdf(sampleItem());
+      final oldFile = local.repository.attachmentFile(
+        original.attachments.single,
+      );
+      final incoming = await remote.saveWithPdf(
+        sampleItem(id: secondItemId, category: 'Vehicles'),
+      );
+      await remote.repository.saveSettings(
+        AppSettings(
+          categories: ['Vehicles'],
+          reminderDays: [5, 2],
+          reminderHour: 12,
+          remindersEnabled: true,
+          currency: 'EUR',
+        ),
+      );
+      final preview = await service.inspectBackup((await remoteExport()).path);
+      await service.restore(preview, RestoreMode.replace);
+      final snapshot = await local.repository.load();
+      expect(snapshot.items.single.id, secondItemId);
+      expect(snapshot.settings.toJson(), preview.snapshot.settings.toJson());
+      expect(
+        snapshot.items.single.attachments.single.relativePath,
+        isNot(incoming.attachments.single.relativePath),
+      );
+      expect(await oldFile.exists(), isFalse);
+      expect(
+        await local.repository
+            .attachmentFile(snapshot.items.single.attachments.single)
+            .readAsBytes(),
+        smallPdf,
+      );
+    },
+  );
 
   test(
     'replace SQL failure preserves all current data and receipt bytes',

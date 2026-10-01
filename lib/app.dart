@@ -8,6 +8,7 @@ import 'domain/models.dart';
 import 'l10n/app_localizations.dart';
 import 'services/reminder_service.dart';
 import 'ui/home_screen.dart';
+import 'ui/warranty_detail.dart';
 
 class KepliApp extends ConsumerStatefulWidget {
   const KepliApp({super.key});
@@ -19,6 +20,9 @@ class KepliApp extends ConsumerStatefulWidget {
 class _KepliAppState extends ConsumerState<KepliApp>
     with WidgetsBindingObserver {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
+  final _navigator = GlobalKey<NavigatorState>();
+  late final ReminderGateway _reminders;
+  String? _pendingNotification;
   Timer? _dateTimer;
   CalendarDate _today = CalendarDate.fromDateTime(DateTime.now());
 
@@ -26,10 +30,13 @@ class _KepliAppState extends ConsumerState<KepliApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    final reminders = ref.read(dependenciesProvider).reminders;
+    final reminders = _reminders = ref.read(dependenciesProvider).reminders;
     if (reminders is ReminderService) {
-      reminders.onItemSelected = (id) {
-        if (mounted) ref.read(vaultProvider.notifier).selectItem(id);
+      reminders.onItemSelected = _openNotificationItem;
+      reminders.onStatusChanged = (status) {
+        if (mounted) {
+          ref.read(vaultProvider.notifier).updateReminderStatus(status);
+        }
       };
     }
     _dateTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -39,6 +46,40 @@ class _KepliAppState extends ConsumerState<KepliApp>
         unawaited(_refresh());
       }
     });
+  }
+
+  void _openNotificationItem(String id) {
+    if (!mounted) return;
+    _pendingNotification = id;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _navigateNotification(),
+    );
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _navigateNotification() {
+    final navigator = _navigator.currentState;
+    final id = _pendingNotification;
+    if (!mounted || navigator == null || id == null) return;
+    _pendingNotification = null;
+    final state = ref.read(vaultProvider);
+    if (!state.snapshot.items.any((item) => item.id == id)) {
+      final strings = lookupAppLocalizations(
+        Locale(state.snapshot.settings.languageCode),
+      );
+      _messenger.currentState?.showSnackBar(
+        SnackBar(content: Text(strings.noMatches)),
+      );
+      return;
+    }
+    ref.read(vaultProvider.notifier).selectItem(id);
+    unawaited(
+      navigator.push<void>(
+        MaterialPageRoute(
+          builder: (context) => WarrantyDetailScreen(itemId: id),
+        ),
+      ),
+    );
   }
 
   Future<void> _refresh() async {
@@ -65,6 +106,11 @@ class _KepliAppState extends ConsumerState<KepliApp>
   @override
   void dispose() {
     _dateTimer?.cancel();
+    final reminders = _reminders;
+    if (reminders is ReminderService) {
+      reminders.onItemSelected = null;
+      reminders.onStatusChanged = null;
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -81,6 +127,7 @@ class _KepliAppState extends ConsumerState<KepliApp>
       title: 'Kepli',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _messenger,
+      navigatorKey: _navigator,
       locale: Locale(settings.languageCode),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -95,11 +142,19 @@ class _KepliAppState extends ConsumerState<KepliApp>
       themeAnimationDuration: reducedMotion
           ? Duration.zero
           : const Duration(milliseconds: 200),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(disableAnimations: reducedMotion, highContrast: contrast),
-        child: child!,
-      ),
+      builder: (context, child) {
+        if (_pendingNotification != null) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _navigateNotification(),
+          );
+        }
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(disableAnimations: reducedMotion, highContrast: contrast),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }

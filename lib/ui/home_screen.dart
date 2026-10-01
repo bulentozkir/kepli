@@ -24,8 +24,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
-    with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _scaffold = GlobalKey<ScaffoldState>();
   final _settings = GlobalKey<SettingsScreenState>();
   final _search = TextEditingController();
@@ -37,22 +36,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _allowExit = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     _listScroll.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refresh();
   }
 
   Future<void> _refresh() async {

@@ -3,10 +3,13 @@ import 'dart:io';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_selector_platform_interface/file_selector_platform_interface.dart'
+    as selector;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kepli/domain/models.dart';
+import 'package:kepli/data/attachment_files.dart';
 import 'package:kepli/services/platform_files.dart';
 import 'package:path/path.dart' as p;
 
@@ -18,20 +21,21 @@ const _openChannel = MethodChannel('open_file');
 final _png = Uint8List.fromList([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
 
 base class _MemoryFile extends PlatformFile {
-  _MemoryFile(this.name, this.bytes);
+  _MemoryFile(this.name, this.bytes, {this.reportedLength});
 
   @override
   final String name;
   final Uint8List bytes;
+  final int? reportedLength;
 
   @override
   Uri get uri => Uri.parse('content://selected-document/$name');
   @override
   XFile get xFile => throw StateError('A local path must not be assumed.');
   @override
-  int? lengthSync() => bytes.length;
+  int? lengthSync() => reportedLength ?? bytes.length;
   @override
-  Future<int?> length() async => bytes.length;
+  Future<int?> length() async => reportedLength ?? bytes.length;
   @override
   Future<Uint8List> readAsBytes() async => bytes;
   @override
@@ -41,11 +45,7 @@ base class _MemoryFile extends PlatformFile {
 class _Picker extends FilePickerPlatform {
   List<PlatformFile> files = [];
   PlatformFile? backup;
-  File? destination;
-  bool writeDestination = true;
   List<String>? lastExtensions;
-  String? lastFileName;
-  String? lastMimeType;
 
   @override
   Future<List<PlatformFile>> pickFiles({
@@ -82,25 +82,22 @@ class _Picker extends FilePickerPlatform {
     lastExtensions = allowedExtensions;
     return backup;
   }
+}
+
+class _SavePicker extends selector.FileSelectorPlatform {
+  File? destination;
+  String? suggestedName;
+  List<selector.XTypeGroup>? groups;
 
   @override
-  Future<Uri?> saveFile({
-    required String fileName,
-    required Uint8List bytes,
-    required String mimeType,
-    String? dialogTitle,
-    String? initialDirectory,
-    Function(FilePickerStatus)? onFileSaving,
-    WindowsOptions windowsOptions = const WindowsOptions(),
-    LinuxOptions linuxOptions = const LinuxOptions(),
-    WebOptions webOptions = const WebOptions(),
+  Future<selector.FileSaveLocation?> getSaveLocation({
+    List<selector.XTypeGroup>? acceptedTypeGroups,
+    selector.SaveDialogOptions options = const selector.SaveDialogOptions(),
   }) async {
-    lastFileName = fileName;
-    lastMimeType = mimeType;
-    final file = destination;
-    if (file == null) return null;
-    if (writeDestination) await file.writeAsBytes(bytes, flush: true);
-    return file.uri;
+    suggestedName = options.suggestedName;
+    groups = acceptedTypeGroups;
+    final path = destination?.path;
+    return path == null ? null : selector.FileSaveLocation(path);
   }
 }
 
@@ -109,19 +106,24 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   final originalPicker = FilePickerPlatform.instance;
+  final originalSavePicker = selector.FileSelectorPlatform.instance;
   late Directory work;
   late PlatformFiles files;
   late _Picker picker;
+  late _SavePicker savePicker;
   var serial = 0;
 
   setUp(() async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    work = Directory(p.join('test', '.platform_files_work_${pid}_${serial++}'))
-        .absolute;
+    work = Directory(
+      p.join('test', '.platform_files_work_${pid}_${serial++}'),
+    ).absolute;
     await work.create(recursive: true);
     files = PlatformFiles(temporaryDirectory: work);
     picker = _Picker();
     FilePickerPlatform.instance = picker;
+    savePicker = _SavePicker();
+    selector.FileSelectorPlatform.instance = savePicker;
   });
 
   tearDown(() async {
@@ -134,6 +136,7 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     }
     FilePickerPlatform.instance = originalPicker;
+    selector.FileSelectorPlatform.instance = originalSavePicker;
     debugDefaultTargetPlatformOverride = null;
     if (await work.exists()) await work.delete(recursive: true);
   });
@@ -182,7 +185,8 @@ void main() {
       expect(attachment.mimeType, 'image/png');
       expect(await File(attachment.sourcePath).readAsBytes(), _png);
       expect(p.isWithin(work.path, attachment.sourcePath), isTrue);
-      expect(picker.lastExtensions, containsAll(['pdf', 'png', 'heic']));
+      expect(picker.lastExtensions, containsAll(['pdf', 'png', 'jpg']));
+      expect(picker.lastExtensions, isNot(contains('heic')));
     },
   );
 
@@ -222,21 +226,24 @@ void main() {
   test(
     'oversize attachments are rejected before filling local storage',
     () async {
-      picker.files = [_MemoryFile('huge.png', Uint8List(25 * 1024 * 1024 + 1))];
+      picker.files = [
+        _MemoryFile(
+          'huge.png',
+          _png,
+          reportedLength: AttachmentFiles.maxAttachmentBytes + 1,
+        ),
+      ];
       await expectLater(
         files.pickAttachments(role: AttachmentRole.receipt),
         throwsA(
           isA<KepliException>().having(
             (error) => error.message,
             'message',
-            contains('25 MiB'),
+            contains('256 MiB'),
           ),
         ),
       );
-      expect(
-        await Directory(p.join(work.path, 'imports')).list().toList(),
-        isEmpty,
-      );
+      expect(await Directory(p.join(work.path, 'imports')).exists(), isFalse);
     },
   );
 
@@ -278,12 +285,12 @@ void main() {
         final bytes = utf8.encode('%PDF-1.7\nlocal export');
         await original.writeAsBytes(bytes);
         final destination = File(p.join(work.path, 'chosen.pdf'));
-        picker.destination = destination;
+        savePicker.destination = destination;
         final result = await files.saveOrShare(original);
         expect(result, contains(destination.path));
         expect(await destination.readAsBytes(), bytes);
-        expect(picker.lastFileName, 'export.pdf');
-        expect(picker.lastMimeType, 'application/pdf');
+        expect(savePicker.suggestedName, 'export.pdf');
+        expect(savePicker.groups!.single.extensions, ['pdf']);
       },
     );
   }
@@ -299,16 +306,57 @@ void main() {
   );
 
   test(
-    'a destination that was not actually saved is reported as an error',
+    'an unavailable destination is reported without losing the export',
     () async {
       final original = File(p.join(work.path, 'export.csv'));
       await original.writeAsString('a,b');
-      picker.destination = File(p.join(work.path, 'not-written.csv'));
-      picker.writeDestination = false;
+      savePicker.destination = File(p.join(work.path, 'missing', 'export.csv'));
       await expectLater(
         files.saveOrShare(original),
         throwsA(isA<KepliException>()),
       );
+      expect(await original.readAsString(), 'a,b');
+    },
+  );
+
+  test('desktop export refuses to overwrite internal vault data', () async {
+    final vault = Directory(p.join(work.path, 'vault'));
+    await files.protectLocalStorage(vault);
+    final database = File(p.join(vault.path, 'kepli.db'));
+    await database.writeAsString('existing vault');
+    final export = File(p.join(work.path, 'export.zip'));
+    await export.writeAsString('new export');
+    savePicker.destination = database;
+    await expectLater(
+      files.saveOrShare(export),
+      throwsA(isA<KepliException>()),
+    );
+    expect(await database.readAsString(), 'existing vault');
+  });
+
+  test(
+    'Android saves through the system document picker without large byte messages',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final export = File(p.join(work.path, 'export.zip'));
+      await export.writeAsBytes([80, 75, 3, 4]);
+      messenger.setMockMethodCallHandler(_storageChannel, (call) async {
+        expect(call.method, 'saveExport');
+        final args = call.arguments as Map;
+        expect(args['sourcePath'], export.absolute.path);
+        expect(args['fileName'], 'export.zip');
+        expect(args['mimeType'], 'application/zip');
+        expect(args.containsKey('bytes'), isFalse);
+        expect(args['failureMessage'], isNotEmpty);
+        return 'export.zip';
+      });
+      expect(
+        await files.saveOrShare(export, languageCode: 'tr'),
+        'Saved to export.zip',
+      );
+      messenger.setMockMethodCallHandler(_storageChannel, (_) async => null);
+      expect(await files.saveOrShare(export), isNull);
+      expect(await export.exists(), isTrue);
     },
   );
 
@@ -339,21 +387,24 @@ void main() {
     },
   );
 
-  test('mobile share cancellation and unavailable results never claim a saved file', () async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    final original = File(p.join(work.path, 'export.zip'));
-    await original.writeAsBytes([1, 2]);
-    messenger.setMockMethodCallHandler(_shareChannel, (_) async => '');
-    expect(await files.saveOrShare(original), isNull);
-    messenger.setMockMethodCallHandler(
-      _shareChannel,
-      (_) async => 'dev.fluttercommunity.plus/share/unavailable',
-    );
-    expect(
-      await files.saveOrShare(original),
-      contains('without confirming an export'),
-    );
-  });
+  test(
+    'mobile share cancellation and unavailable results never claim a saved file',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final original = File(p.join(work.path, 'export.zip'));
+      await original.writeAsBytes([1, 2]);
+      messenger.setMockMethodCallHandler(_shareChannel, (_) async => '');
+      expect(await files.saveOrShare(original), isNull);
+      messenger.setMockMethodCallHandler(
+        _shareChannel,
+        (_) async => 'dev.fluttercommunity.plus/share/unavailable',
+      );
+      expect(
+        await files.saveOrShare(original),
+        contains('without confirming an export'),
+      );
+    },
+  );
 
   test(
     'camera request persists business-card linkage before leaving the app',
@@ -363,10 +414,13 @@ void main() {
       await cameraFile.writeAsBytes(_png);
       messenger.setMockMethodCallHandler(_imageChannel, (call) async {
         expect(call.method, 'pickImage');
-        final context = jsonDecode(
-          await File(p.join(work.path, 'pending-photo-request.json'))
-              .readAsString(),
-        ) as Map;
+        final context =
+            jsonDecode(
+                  await File(
+                    p.join(work.path, 'pending-photo-request.json'),
+                  ).readAsString(),
+                )
+                as Map;
         expect(context['role'], 'businessCard');
         expect(context['contactId'], _contactId);
         expect((call.arguments as Map)['requestFullMetadata'], isFalse);
@@ -387,24 +441,27 @@ void main() {
     },
   );
 
-  test('photo-library import supports multiple photos without full-metadata permission', () async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    final first = File(p.join(work.path, 'first.png'));
-    final second = File(p.join(work.path, 'second.png'));
-    await first.writeAsBytes(_png);
-    await second.writeAsBytes(_png);
-    messenger.setMockMethodCallHandler(_imageChannel, (call) async {
-      expect(call.method, 'pickMultiImage');
-      expect((call.arguments as Map)['requestFullMetadata'], isFalse);
-      return [first.path, second.path];
-    });
-    final attachments = await files.pickPhotos(role: AttachmentRole.product);
-    expect(attachments, hasLength(2));
-    expect(
-      attachments.every((value) => value.role == AttachmentRole.product),
-      isTrue,
-    );
-  });
+  test(
+    'photo-library import supports multiple photos without full-metadata permission',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final first = File(p.join(work.path, 'first.png'));
+      final second = File(p.join(work.path, 'second.png'));
+      await first.writeAsBytes(_png);
+      await second.writeAsBytes(_png);
+      messenger.setMockMethodCallHandler(_imageChannel, (call) async {
+        expect(call.method, 'pickMultiImage');
+        expect((call.arguments as Map)['requestFullMetadata'], isFalse);
+        return [first.path, second.path];
+      });
+      final attachments = await files.pickPhotos(role: AttachmentRole.product);
+      expect(attachments, hasLength(2));
+      expect(
+        attachments.every((value) => value.role == AttachmentRole.product),
+        isTrue,
+      );
+    },
+  );
 
   test(
     'camera cancellation returns null, permission errors remain visible',

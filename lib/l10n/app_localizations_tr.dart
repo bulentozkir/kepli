@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get claimed => 'Garanti talebi yapıldı';
 
   @override
+  String get status => 'Durum';
+
+  @override
   String get noWarranties => 'Henüz garanti yok';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get years => 'Yıl';
+
+  @override
+  String get customDuration => 'Özel süre';
 
   @override
   String get name => 'Ad';
@@ -229,6 +234,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get backupPreview => 'Yedeği incele';
 
   @override
+  String get newWarranties => 'Yeni garantiler';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items garanti ve $files ek';
   }
@@ -290,7 +298,14 @@ class AppLocalizationsTr extends AppLocalizations {
       'Değerleri virgülle ayırın; örneğin 30, 7, 1. Bitiş tarihi için 0 kullanın.';
 
   @override
+  String get invalidReminderDays =>
+      'Her biri 0 ile 3.650 gün arasında olan 1 ila 12 farklı değer girin.';
+
+  @override
   String get reminderHour => 'Hatırlatma saati (0-23)';
+
+  @override
+  String get invalidReminderHour => '0 ile 23 arasında bir saat girin.';
 
   @override
   String get reminderLimit =>

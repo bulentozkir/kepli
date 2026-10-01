@@ -4,34 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../domain/models.dart';
+import '../domain/number_input.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/value_labels.dart';
 
 extension LocalizedContext on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
 }
 
 String categoryLabel(BuildContext context, String category) =>
-    switch (category) {
-      'Electronics' => context.l10n.categoryElectronics,
-      'Appliances' => context.l10n.categoryAppliances,
-      'Tools' => context.l10n.categoryTools,
-      'Other' => context.l10n.categoryOther,
-      _ => category,
-    };
+    localizeCategory(context.l10n, category);
 
 String attachmentRoleLabel(BuildContext context, AttachmentRole role) =>
-    switch (role) {
-      AttachmentRole.receipt => context.l10n.receipt,
-      AttachmentRole.warranty => context.l10n.warrantyPaper,
-      AttachmentRole.product => context.l10n.productPhoto,
-      AttachmentRole.businessCard => context.l10n.businessCard,
-    };
+    localizeAttachmentRole(context.l10n, role);
 
 String contactRoleLabel(BuildContext context, ContactRole role) =>
-    switch (role) {
-      ContactRole.sales => context.l10n.salesContact,
-      ContactRole.service => context.l10n.serviceContact,
-    };
+    localizeContactRole(context.l10n, role);
 
 String dateLabel(BuildContext context, CalendarDate date) =>
     DateFormat.yMMMd(context.l10n.localeName).format(date.localDate);
@@ -42,36 +30,10 @@ String numberLabel(BuildContext context, num value) =>
 String? optionalText(String value) =>
     value.trim().isEmpty ? null : value.trim();
 
-String normalizedDigits(String value) {
-  const zeroes = [
-    0x0660,
-    0x06f0,
-    0x0966,
-    0x09e6,
-    0x0a66,
-    0x0ae6,
-    0x0b66,
-    0x0be6,
-    0x0c66,
-    0x0ce6,
-    0x0d66,
-    0x0e50,
-  ];
-  return String.fromCharCodes(
-    value.runes.map((rune) {
-      for (final zero in zeroes) {
-        if (rune >= zero && rune < zero + 10) return 0x30 + rune - zero;
-      }
-      return rune;
-    }),
-  );
-}
+String normalizedDigits(String value) => normalizeDigits(value);
 
 String normalizedPrice(BuildContext context, String value) {
-  final decimal = NumberFormat.decimalPattern(context.l10n.localeName)
-      .symbols
-      .DECIMAL_SEP;
-  return normalizedDigits(value.trim()).replaceAll(decimal, '.');
+  return canonicalPriceInput(value) ?? normalizeDigits(value.trim());
 }
 
 String? noticeLabel(BuildContext context, String notice) {

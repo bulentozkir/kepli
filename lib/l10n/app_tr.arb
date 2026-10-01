@@ -18,6 +18,7 @@
   "expiringSoon": "Yakında sona erecek",
   "expired": "Süresi dolmuş",
   "claimed": "Garanti talebi yapıldı",
+  "status": "Durum",
   "noWarranties": "Henüz garanti yok",
   "getStarted": "Bir satın alma ekleyin; fişini, garanti belgelerini ve iletişim bilgilerini bir arada tutun.",
   "noMatches": "Eşleşen garanti yok",

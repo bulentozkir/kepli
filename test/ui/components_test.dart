@@ -15,6 +15,11 @@ Future<void> _pump(
   tester.view.physicalSize = const Size(320, 740);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
   await tester.pumpWidget(
     MaterialApp(
       locale: Locale(rtl ? 'ar' : 'en'),
@@ -27,8 +32,9 @@ Future<void> _pump(
         ),
       ),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
         child: Directionality(
           textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
           child: child!,

@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get claimed => 'Reklamacja złożona';
 
   @override
+  String get status => 'Status';
+
+  @override
   String get noWarranties => 'Nie ma jeszcze gwarancji';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get years => 'Lata';
+
+  @override
+  String get customDuration => 'Niestandardowy okres';
 
   @override
   String get name => 'Nazwa';
@@ -234,6 +239,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get backupPreview => 'Sprawdź kopię zapasową';
 
   @override
+  String get newWarranties => 'Nowe gwarancje';
+
+  @override
   String backupSummary(int items, int files) {
     return 'Gwarancje: $items; załączniki: $files';
   }
@@ -295,7 +303,14 @@ class AppLocalizationsPl extends AppLocalizations {
       'Oddziel wartości przecinkami, na przykład 30, 7, 1. Użyj 0 dla dnia wygaśnięcia.';
 
   @override
+  String get invalidReminderDays =>
+      'Wpisz od 1 do 12 różnych wartości, każdą z zakresu od 0 do 3650 dni.';
+
+  @override
   String get reminderHour => 'Godzina przypomnienia (0–23)';
+
+  @override
+  String get invalidReminderHour => 'Wpisz godzinę od 0 do 23.';
 
   @override
   String get reminderLimit =>

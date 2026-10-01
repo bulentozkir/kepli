@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get claimed => 'క్లెయిమ్ చేసినవి';
 
   @override
+  String get status => 'స్థితి';
+
+  @override
   String get noWarranties => 'ఇంకా వారంటీలు లేవు';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get years => 'సంవత్సరాలు';
+
+  @override
+  String get customDuration => 'అనుకూల వ్యవధి';
 
   @override
   String get name => 'పేరు';
@@ -231,6 +236,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get backupPreview => 'బ్యాకప్‌ను సమీక్షించండి';
 
   @override
+  String get newWarranties => 'కొత్త వారంటీలు';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items వారంటీలు, $files జోడింపులు';
   }
@@ -292,7 +300,14 @@ class AppLocalizationsTe extends AppLocalizations {
       'విలువలను కామాలతో వేరు చేయండి, ఉదాహరణకు 30, 7, 1. గడువు ముగిసే తేదీకి 0 వాడండి.';
 
   @override
+  String get invalidReminderDays =>
+      '1 నుండి 12 వేర్వేరు విలువలను నమోదు చేయండి. ప్రతి విలువ 0 నుండి 3,650 రోజుల మధ్య ఉండాలి.';
+
+  @override
   String get reminderHour => 'రిమైండర్ గంట (0–23)';
+
+  @override
+  String get invalidReminderHour => '0 నుండి 23 మధ్య గంటను నమోదు చేయండి.';
 
   @override
   String get reminderLimit =>

@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get claimed => '保証申請済み';
 
   @override
+  String get status => '状態';
+
+  @override
   String get noWarranties => '保証はまだありません';
 
   @override
@@ -89,6 +91,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get years => '年';
+
+  @override
+  String get customDuration => '期間を指定';
 
   @override
   String get name => '名前';
@@ -227,6 +232,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupPreview => 'バックアップを確認';
 
   @override
+  String get newWarranties => '新しい保証';
+
+  @override
   String backupSummary(int items, int files) {
     return '保証$items件、添付ファイル$files件';
   }
@@ -285,7 +293,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reminderDaysHelp => '30, 7, 1のようにカンマで区切ってください。期限当日は0を指定します。';
 
   @override
+  String get invalidReminderDays => '0〜3,650日の範囲で、重複しない値を1〜12個入力してください。';
+
+  @override
   String get reminderHour => '通知する時刻（0〜23時）';
+
+  @override
+  String get invalidReminderHour => '0〜23の範囲で時刻を入力してください。';
 
   @override
   String get reminderLimit =>

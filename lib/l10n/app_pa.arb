@@ -1,6 +1,7 @@
 {
   "@@locale": "pa",
   "appTitle": "Kepli",
+  "status": "ਸਥਿਤੀ",
   "tagline": "ਤੁਹਾਡੀਆਂ ਵਾਰੰਟੀਆਂ। ਤੁਹਾਡੀਆਂ ਰਸੀਦਾਂ। ਸਭ ਤੁਹਾਡੇ ਕੋਲ।",
   "warranties": "ਵਾਰੰਟੀਆਂ",
   "backups": "ਬੈਕਅੱਪ",

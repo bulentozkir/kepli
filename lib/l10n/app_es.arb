@@ -18,6 +18,7 @@
   "expiringSoon": "Próximas a vencer",
   "expired": "Vencidas",
   "claimed": "Reclamadas",
+  "status": "Estado",
   "noWarranties": "Aún no hay garantías",
   "getStarted": "Añade una compra y guarda juntos su recibo, los documentos de garantía y los contactos.",
   "noMatches": "No hay garantías que coincidan",

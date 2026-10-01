@@ -179,6 +179,15 @@ class DocumentScanner {
         interpolation: imaging.Interpolation.average,
       );
     }
+    if (image.hasAlpha) {
+      final background = imaging.Image(
+        width: image.width,
+        height: image.height,
+        numChannels: 3,
+      );
+      imaging.fill(background, color: imaging.ColorRgb8(255, 255, 255));
+      image = imaging.compositeImage(background, image);
+    }
     if (page.enhance) {
       image = imaging.adjustColor(image, contrast: 1.15, saturation: 0);
     }

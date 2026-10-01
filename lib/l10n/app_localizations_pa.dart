@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get claimed => 'ਦਾਅਵਾ ਕੀਤਾ ਗਿਆ';
 
   @override
+  String get status => 'ਸਥਿਤੀ';
+
+  @override
   String get noWarranties => 'ਹਾਲੇ ਕੋਈ ਵਾਰੰਟੀ ਨਹੀਂ';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get years => 'ਸਾਲ';
+
+  @override
+  String get customDuration => 'ਆਪਣੀ ਪਸੰਦ ਦੀ ਮਿਆਦ';
 
   @override
   String get name => 'ਨਾਮ';
@@ -230,6 +235,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get backupPreview => 'ਬੈਕਅੱਪ ਦੀ ਸਮੀਖਿਆ ਕਰੋ';
 
   @override
+  String get newWarranties => 'ਨਵੀਆਂ ਵਾਰੰਟੀਆਂ';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items ਵਾਰੰਟੀਆਂ ਅਤੇ $files ਨੱਥੀ ਫਾਈਲਾਂ';
   }
@@ -255,7 +263,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String replaceConfirmation(int count) {
-    return 'ਕੀ ਇਸ ਡਿਵਾਈਸ ਦੀਆਂ ਸਾਰੀਆਂ $count ਵਾਰੰਟੀਆਂ ਪੱਕੇ ਤੌਰ \'ਤੇ ਬਦਲਣੀਆਂ ਹਨ? ਉਨ੍ਹਾਂ ਨੂੰ ਰੱਖਣਾ ਚਾਹੁੰਦੇ ਹੋ ਤਾਂ ਪਹਿਲਾਂ ਬੈਕਅੱਪ ਨਿਰਯਾਤ ਕਰੋ।';
+    return 'ਕੀ ਇਸ ਡਿਵਾਈਸ ਦੀਆਂ ਸਾਰੀਆਂ $count ਵਾਰੰਟੀਆਂ ਪੱਕੇ ਤੌਰ ’ਤੇ ਬਦਲਣੀਆਂ ਹਨ? ਉਨ੍ਹਾਂ ਨੂੰ ਰੱਖਣਾ ਚਾਹੁੰਦੇ ਹੋ ਤਾਂ ਪਹਿਲਾਂ ਬੈਕਅੱਪ ਨਿਰਯਾਤ ਕਰੋ।';
   }
 
   @override
@@ -272,7 +280,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get newerWinsHelp =>
-      'ਆਮ ਤੌਰ \'ਤੇ ਹਾਲ ਹੀ ਵਿੱਚ ਅੱਪਡੇਟ ਹੋਇਆ ਸੰਸਕਰਣ ਰੱਖਿਆ ਜਾਂਦਾ ਹੈ। ਸਮਾਂ-ਮੋਹਰਾਂ ਬਰਾਬਰ ਹੋਣ ਉੱਤੇ ਇਸ ਡਿਵਾਈਸ ਦਾ ਸੰਸਕਰਣ ਰੱਖਿਆ ਜਾਂਦਾ ਹੈ। ਇਸ ਦੀ ਬਜਾਏ ਸਥਾਨਕ ਸੰਸਕਰਣ ਰੱਖਣ ਲਈ ਹੇਠਾਂ ਵਾਰੰਟੀਆਂ ਚੁਣੋ।';
+      'ਆਮ ਤੌਰ ’ਤੇ ਹਾਲ ਹੀ ਵਿੱਚ ਅੱਪਡੇਟ ਹੋਇਆ ਸੰਸਕਰਣ ਰੱਖਿਆ ਜਾਂਦਾ ਹੈ। ਸਮਾਂ-ਮੋਹਰਾਂ ਬਰਾਬਰ ਹੋਣ ਉੱਤੇ ਇਸ ਡਿਵਾਈਸ ਦਾ ਸੰਸਕਰਣ ਰੱਖਿਆ ਜਾਂਦਾ ਹੈ। ਇਸ ਦੀ ਬਜਾਏ ਸਥਾਨਕ ਸੰਸਕਰਣ ਰੱਖਣ ਲਈ ਹੇਠਾਂ ਵਾਰੰਟੀਆਂ ਚੁਣੋ।';
 
   @override
   String get restore => 'ਬਹਾਲ ਕਰੋ';
@@ -291,7 +299,14 @@ class AppLocalizationsPa extends AppLocalizations {
       'ਮੁੱਲਾਂ ਨੂੰ ਕਾਮਿਆਂ ਨਾਲ ਵੱਖ ਕਰੋ, ਜਿਵੇਂ 30, 7, 1। ਮਿਆਦ ਮੁੱਕਣ ਦੀ ਤਾਰੀਖ ਲਈ 0 ਵਰਤੋ।';
 
   @override
+  String get invalidReminderDays =>
+      '1 ਤੋਂ 12 ਵੱਖਰੇ ਮੁੱਲ ਦਰਜ ਕਰੋ, ਹਰ ਮੁੱਲ 0 ਤੋਂ 3,650 ਦਿਨਾਂ ਦੇ ਵਿਚਕਾਰ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।';
+
+  @override
   String get reminderHour => 'ਯਾਦ-ਦਹਾਨੀ ਦਾ ਘੰਟਾ (0–23)';
+
+  @override
+  String get invalidReminderHour => '0 ਤੋਂ 23 ਦੇ ਵਿਚਕਾਰ ਘੰਟਾ ਦਰਜ ਕਰੋ।';
 
   @override
   String get reminderLimit =>
@@ -299,7 +314,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get notificationPrivacy =>
-      'ਯਾਦ-ਦਹਾਨੀਆਂ ਸਥਾਨਕ ਤੌਰ \'ਤੇ ਤੈਅ ਕੀਤੀਆਂ ਜਾਂਦੀਆਂ ਹਨ। ਇਜਾਜ਼ਤਾਂ, ਬੈਟਰੀ ਸੈਟਿੰਗਾਂ ਅਤੇ ਆਪਰੇਟਿੰਗ ਸਿਸਟਮ ਉਨ੍ਹਾਂ ਨੂੰ ਦੇਰ ਨਾਲ ਭੇਜ ਸਕਦੇ ਹਨ ਜਾਂ ਰੋਕ ਸਕਦੇ ਹਨ। ਜਲਦੀ ਮਿਆਦ ਮੁੱਕਣ ਵਾਲੀਆਂ ਵਾਰੰਟੀਆਂ ਦੀ ਸੂਚੀ ਹਮੇਸ਼ਾ ਉਪਲਬਧ ਹੁੰਦੀ ਹੈ।';
+      'ਯਾਦ-ਦਹਾਨੀਆਂ ਸਥਾਨਕ ਤੌਰ ’ਤੇ ਤੈਅ ਕੀਤੀਆਂ ਜਾਂਦੀਆਂ ਹਨ। ਇਜਾਜ਼ਤਾਂ, ਬੈਟਰੀ ਸੈਟਿੰਗਾਂ ਅਤੇ ਆਪਰੇਟਿੰਗ ਸਿਸਟਮ ਉਨ੍ਹਾਂ ਨੂੰ ਦੇਰ ਨਾਲ ਭੇਜ ਸਕਦੇ ਹਨ ਜਾਂ ਰੋਕ ਸਕਦੇ ਹਨ। ਜਲਦੀ ਮਿਆਦ ਮੁੱਕਣ ਵਾਲੀਆਂ ਵਾਰੰਟੀਆਂ ਦੀ ਸੂਚੀ ਹਮੇਸ਼ਾ ਉਪਲਬਧ ਹੁੰਦੀ ਹੈ।';
 
   @override
   String get permissionRequired => 'ਸੂਚਨਾਵਾਂ ਦੀ ਇਜਾਜ਼ਤ ਲੋੜੀਂਦੀ ਹੈ।';
@@ -489,11 +504,11 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get pdfReferences =>
-      'PDF ਰਸੀਦਾਂ ਅਤੇ ਵਾਰੰਟੀ ਦੇ ਕਾਗਜ਼ ਫਾਈਲ ਦੇ ਨਾਮ ਮੁਤਾਬਕ ਸੂਚੀਬੱਧ ਹਨ। ਲੋੜ ਪੈਣ ਉੱਤੇ ਉਨ੍ਹਾਂ ਦੀਆਂ ਅਸਲ ਫਾਈਲਾਂ ਵੱਖਰੇ ਤੌਰ \'ਤੇ ਸਾਂਝੀਆਂ ਕਰੋ।';
+      'PDF ਰਸੀਦਾਂ ਅਤੇ ਵਾਰੰਟੀ ਦੇ ਕਾਗਜ਼ ਫਾਈਲ ਦੇ ਨਾਮ ਮੁਤਾਬਕ ਸੂਚੀਬੱਧ ਹਨ। ਲੋੜ ਪੈਣ ਉੱਤੇ ਉਨ੍ਹਾਂ ਦੀਆਂ ਅਸਲ ਫਾਈਲਾਂ ਵੱਖਰੇ ਤੌਰ ’ਤੇ ਸਾਂਝੀਆਂ ਕਰੋ।';
 
   @override
   String get documentFooter =>
-      'Kepli ਵੱਲੋਂ ਸਥਾਨਕ ਤੌਰ \'ਤੇ ਬਣਾਈ ਗਈ। ਇਹ ਰਿਪੋਰਟ ਬਹਾਲ ਕਰਨ ਯੋਗ ਬੈਕਅੱਪ ਨਹੀਂ ਹੈ।';
+      'Kepli ਵੱਲੋਂ ਸਥਾਨਕ ਤੌਰ ’ਤੇ ਬਣਾਈ ਗਈ। ਇਹ ਰਿਪੋਰਟ ਬਹਾਲ ਕਰਨ ਯੋਗ ਬੈਕਅੱਪ ਨਹੀਂ ਹੈ।';
 
   @override
   String get notificationTitle => 'ਵਾਰੰਟੀ ਦੀ ਮਿਆਦ ਮੁੱਕ ਰਹੀ ਹੈ';

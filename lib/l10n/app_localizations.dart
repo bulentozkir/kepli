@@ -10,12 +10,16 @@ import 'app_localizations_bn.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
+import 'app_localizations_fa.dart';
 import 'app_localizations_fr.dart';
+import 'app_localizations_gu.dart';
 import 'app_localizations_hi.dart';
 import 'app_localizations_id.dart';
 import 'app_localizations_it.dart';
 import 'app_localizations_ja.dart';
+import 'app_localizations_kn.dart';
 import 'app_localizations_ko.dart';
+import 'app_localizations_ml.dart';
 import 'app_localizations_mr.dart';
 import 'app_localizations_nl.dart';
 import 'app_localizations_pa.dart';
@@ -23,7 +27,9 @@ import 'app_localizations_pl.dart';
 import 'app_localizations_pt.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_sw.dart';
+import 'app_localizations_ta.dart';
 import 'app_localizations_te.dart';
+import 'app_localizations_th.dart';
 import 'app_localizations_tr.dart';
 import 'app_localizations_uk.dart';
 import 'app_localizations_ur.dart';
@@ -121,12 +127,16 @@ abstract class AppLocalizations {
     Locale('de'),
     Locale('en'),
     Locale('es'),
+    Locale('fa'),
     Locale('fr'),
+    Locale('gu'),
     Locale('hi'),
     Locale('id'),
     Locale('it'),
     Locale('ja'),
+    Locale('kn'),
     Locale('ko'),
+    Locale('ml'),
     Locale('mr'),
     Locale('nl'),
     Locale('pa'),
@@ -134,7 +144,9 @@ abstract class AppLocalizations {
     Locale('pt'),
     Locale('ru'),
     Locale('sw'),
+    Locale('ta'),
     Locale('te'),
+    Locale('th'),
     Locale('tr'),
     Locale('uk'),
     Locale('ur'),
@@ -250,6 +262,12 @@ abstract class AppLocalizations {
   /// **'Claimed'**
   String get claimed;
 
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
   /// No description provided for @noWarranties.
   ///
   /// In en, this message translates to:
@@ -303,6 +321,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Years'**
   String get years;
+
+  /// No description provided for @customDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom duration'**
+  String get customDuration;
 
   /// No description provided for @name.
   ///
@@ -532,6 +556,12 @@ abstract class AppLocalizations {
   /// **'Review backup'**
   String get backupPreview;
 
+  /// No description provided for @newWarranties.
+  ///
+  /// In en, this message translates to:
+  /// **'New warranties'**
+  String get newWarranties;
+
   /// No description provided for @backupSummary.
   ///
   /// In en, this message translates to:
@@ -634,11 +664,23 @@ abstract class AppLocalizations {
   /// **'Separate values with commas, for example 30, 7, 1. Use 0 for the expiry date.'**
   String get reminderDaysHelp;
 
+  /// No description provided for @invalidReminderDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 1 to 12 unique values, each between 0 and 3,650 days.'**
+  String get invalidReminderDays;
+
   /// No description provided for @reminderHour.
   ///
   /// In en, this message translates to:
   /// **'Reminder hour (0-23)'**
   String get reminderHour;
+
+  /// No description provided for @invalidReminderHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an hour between 0 and 23.'**
+  String get invalidReminderHour;
 
   /// No description provided for @reminderLimit.
   ///
@@ -1257,12 +1299,16 @@ class _AppLocalizationsDelegate
     'de',
     'en',
     'es',
+    'fa',
     'fr',
+    'gu',
     'hi',
     'id',
     'it',
     'ja',
+    'kn',
     'ko',
+    'ml',
     'mr',
     'nl',
     'pa',
@@ -1270,7 +1316,9 @@ class _AppLocalizationsDelegate
     'pt',
     'ru',
     'sw',
+    'ta',
     'te',
+    'th',
     'tr',
     'uk',
     'ur',
@@ -1295,8 +1343,12 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'es':
       return AppLocalizationsEs();
+    case 'fa':
+      return AppLocalizationsFa();
     case 'fr':
       return AppLocalizationsFr();
+    case 'gu':
+      return AppLocalizationsGu();
     case 'hi':
       return AppLocalizationsHi();
     case 'id':
@@ -1305,8 +1357,12 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsIt();
     case 'ja':
       return AppLocalizationsJa();
+    case 'kn':
+      return AppLocalizationsKn();
     case 'ko':
       return AppLocalizationsKo();
+    case 'ml':
+      return AppLocalizationsMl();
     case 'mr':
       return AppLocalizationsMr();
     case 'nl':
@@ -1321,8 +1377,12 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsRu();
     case 'sw':
       return AppLocalizationsSw();
+    case 'ta':
+      return AppLocalizationsTa();
     case 'te':
       return AppLocalizationsTe();
+    case 'th':
+      return AppLocalizationsTh();
     case 'tr':
       return AppLocalizationsTr();
     case 'uk':

@@ -37,10 +37,11 @@ abstract interface class ReminderGateway {
 }
 
 class ReminderService with WidgetsBindingObserver implements ReminderGateway {
-  ReminderService({this.onItemSelected, this.onStatusChanged});
+  ReminderService({this._onItemSelected, this.onStatusChanged});
 
-  final void Function(String itemId)? onItemSelected;
-  final void Function(ReminderStatus status)? onStatusChanged;
+  void Function(String itemId)? _onItemSelected;
+  void Function(ReminderStatus status)? onStatusChanged;
+  String? _pendingSelection;
   final _plugin = FlutterLocalNotificationsPlugin();
   final _lock = Lock();
   final _platform = defaultTargetPlatform;
@@ -62,6 +63,19 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
   );
 
   ReminderStatus get status => _status;
+
+  void Function(String itemId)? get onItemSelected => _onItemSelected;
+
+  set onItemSelected(void Function(String itemId)? callback) {
+    _onItemSelected = callback;
+    final pending = _pendingSelection;
+    if (callback != null && pending != null) {
+      _pendingSelection = null;
+      scheduleMicrotask(() {
+        if (!_disposed) _onItemSelected?.call(pending);
+      });
+    }
+  }
 
   bool get _nativeScheduling => switch (_platform) {
     TargetPlatform.android ||
@@ -235,67 +249,66 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
   }
 
   @override
-  Future<ReminderStatus> reconcile(VaultSnapshot snapshot) => _run(
-    'Update reminders',
-    () async {
-      _lastSnapshot = snapshot;
-      _linuxTimer?.cancel();
-      _linuxQueue = const [];
-      await _ensureReady();
-      if (!_ready) return _report();
-      await _cancelPending();
-      await _readAuthorization();
-      if (!snapshot.settings.remindersEnabled || !_authorized) {
-        _lastError = null;
-        return _report(
-          detail: snapshot.settings.remindersEnabled
-              ? null
-              : 'Reminders are turned off.',
-        );
-      }
-      await _refreshTimeZone();
-      await initializeDateFormatting(snapshot.settings.languageCode);
-      final plan = buildReminderPlan(
-        snapshot: snapshot,
-        location: _location!,
-        now: DateTime.now(),
-      );
-      if (_platform == TargetPlatform.linux) {
-        _linuxQueue = plan.reminders;
-        _scheduledCount = _linuxQueue.length;
-        _armLinuxTimer();
-      } else {
-        for (final reminder in plan.reminders) {
-          final (title, body) = _notificationText(reminder, snapshot.settings);
-          await _plugin.zonedSchedule(
-            id: reminder.id,
-            title: title,
-            body: body,
-            scheduledDate: reminder.scheduledAt,
-            notificationDetails: _details(title),
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-            payload: reminder.itemId,
-          );
-          _scheduledCount++;
-        }
-        final installed = await _plugin.pendingNotificationRequests();
-        _scheduledCount = installed.length;
-        final installedIds = installed.map((value) => value.id).toSet();
-        if (plan.reminders.any((value) => !installedIds.contains(value.id))) {
-          throw const KepliException(
-            'The operating system did not retain every scheduled reminder.',
-          );
-        }
-      }
+  Future<ReminderStatus> reconcile(
+    VaultSnapshot snapshot,
+  ) => _run('Update reminders', () async {
+    _lastSnapshot = snapshot;
+    _linuxTimer?.cancel();
+    _linuxQueue = const [];
+    await _ensureReady();
+    if (!_ready) return _report();
+    await _cancelPending();
+    await _readAuthorization();
+    if (!snapshot.settings.remindersEnabled || !_authorized) {
       _lastError = null;
       return _report(
-        detail: plan.isTruncated
-            ? 'The nearest ${plan.reminders.length} of ${plan.totalCount} '
-                  'reminders are queued. Open Kepli regularly to refresh the queue.'
-            : null,
+        detail: snapshot.settings.remindersEnabled
+            ? null
+            : 'Reminders are turned off.',
       );
-    },
-  );
+    }
+    await _refreshTimeZone();
+    await initializeDateFormatting(snapshot.settings.languageCode);
+    final plan = buildReminderPlan(
+      snapshot: snapshot,
+      location: _location!,
+      now: DateTime.now(),
+    );
+    if (_platform == TargetPlatform.linux) {
+      _linuxQueue = plan.reminders;
+      _scheduledCount = _linuxQueue.length;
+      _armLinuxTimer();
+    } else {
+      for (final reminder in plan.reminders) {
+        final (title, body) = _notificationText(reminder, snapshot.settings);
+        await _plugin.zonedSchedule(
+          id: reminder.id,
+          title: title,
+          body: body,
+          scheduledDate: reminder.scheduledAt,
+          notificationDetails: _details(title),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: reminder.itemId,
+        );
+        _scheduledCount++;
+      }
+      final installed = await _plugin.pendingNotificationRequests();
+      _scheduledCount = installed.length;
+      final installedIds = installed.map((value) => value.id).toSet();
+      if (plan.reminders.any((value) => !installedIds.contains(value.id))) {
+        throw const KepliException(
+          'The operating system did not retain every scheduled reminder.',
+        );
+      }
+    }
+    _lastError = null;
+    return _report(
+      detail: plan.isTruncated
+          ? 'The nearest ${plan.reminders.length} of ${plan.totalCount} '
+                'reminders are queued. Open Kepli regularly to refresh the queue.'
+          : null,
+    );
+  });
 
   Future<void> _cancelPending() async {
     if (_platform == TargetPlatform.linux) {
@@ -324,8 +337,9 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
     AppSettings settings,
   ) {
     final l10n = lookupAppLocalizations(Locale(settings.languageCode));
-    final date = DateFormat.yMMMd(settings.languageCode)
-        .format(reminder.expiryDate.utcDate);
+    final date = DateFormat.yMMMd(
+      settings.languageCode,
+    ).format(reminder.expiryDate.utcDate);
     return (
       l10n.notificationTitle,
       l10n.notificationBody(reminder.itemName, date),
@@ -402,8 +416,12 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
   void _onResponse(NotificationResponse response) {
     final id = response.payload;
     if (_disposed || id == null || !isUuid(id)) return;
+    if (_onItemSelected == null) {
+      _pendingSelection = id;
+      return;
+    }
     try {
-      onItemSelected?.call(id);
+      _onItemSelected?.call(id);
     } catch (error, stack) {
       _recordError('Open warranty from reminder', error, stack);
       _report();
@@ -424,16 +442,20 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
       if (_platform == TargetPlatform.linux)
         'Linux has no native reminder scheduler. Reminders only work while '
             'Kepli is open and a desktop notification service is available.',
-      if (_platform == TargetPlatform.windows && _windowsPackaged) 'Delivery also depends on Windows notification settings and Do Not Disturb.',
+      if (_platform == TargetPlatform.windows && _windowsPackaged)
+        'Delivery also depends on Windows notification settings and Do Not Disturb.',
       if (_ready && !_authorized)
         'Notification permission is not granted. Enable it in system settings.',
-      if (_platform == TargetPlatform.android && _authorized) 'Android reminders are approximate and may be delayed by battery saving.',
+      if (_platform == TargetPlatform.android && _authorized)
+        'Android reminders are approximate and may be delayed by battery saving.',
       ?detail,
       ?_lastError,
     ];
     _status = ReminderStatus(
       authorized: _authorized,
-      supported: _nativeScheduling,
+      supported:
+          _nativeScheduling ||
+          (_platform == TargetPlatform.linux && _ready && _authorized),
       scheduledCount: _scheduledCount,
       message: messages.isEmpty ? null : messages.join(' '),
     );

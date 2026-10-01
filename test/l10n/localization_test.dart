@@ -14,10 +14,9 @@ Map<String, dynamic> messages(String language) =>
         )
         as Map<String, dynamic>;
 
-Set<String> placeholders(String message) => RegExp(r'\{(\w+)(?:[,}])')
-    .allMatches(message)
-    .map((match) => match.group(1)!)
-    .toSet();
+Set<String> placeholders(String message) => RegExp(
+  r'\{(\w+)(?:[,}])',
+).allMatches(message).map((match) => match.group(1)!).toSet();
 
 void main() {
   test('every supported language has a full nonempty translated catalog', () {
@@ -26,7 +25,9 @@ void main() {
     expect(supportedLanguageCodes.toSet(), hasLength(30));
     expect(languageNames.keys.toSet(), supportedLanguageCodes.toSet());
     expect(
-      AppLocalizations.supportedLocales.map((locale) => locale.languageCode).toSet(),
+      AppLocalizations.supportedLocales
+          .map((locale) => locale.languageCode)
+          .toSet(),
       supportedLanguageCodes.toSet(),
     );
     for (final language in supportedLanguageCodes) {

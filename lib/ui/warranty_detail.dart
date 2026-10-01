@@ -86,6 +86,7 @@ class _WarrantyDetailPaneState extends ConsumerState<WarrantyDetailPane> {
       final notice = await dependencies.files.saveOrShare(
         file,
         shareOrigin: origin,
+        languageCode: snapshot.settings.languageCode,
       );
       if (mounted) {
         setState(() => _exportNotice = notice ?? 'Export cancelled.');

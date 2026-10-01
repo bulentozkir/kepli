@@ -18,6 +18,7 @@
   "expiringSoon": "Expiring soon",
   "expired": "Expired",
   "claimed": "Claimed",
+  "status": "Status",
   "noWarranties": "No warranties yet",
   "getStarted": "Add a purchase and keep its receipt, warranty papers and contacts together.",
   "noMatches": "No matching warranties",

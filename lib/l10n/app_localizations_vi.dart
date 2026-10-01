@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get claimed => 'Đã yêu cầu bảo hành';
 
   @override
+  String get status => 'Trạng thái';
+
+  @override
   String get noWarranties => 'Chưa có bảo hành nào';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get years => 'Năm';
+
+  @override
+  String get customDuration => 'Thời hạn tùy chỉnh';
 
   @override
   String get name => 'Tên';
@@ -229,6 +234,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backupPreview => 'Xem lại bản sao lưu';
 
   @override
+  String get newWarranties => 'Bảo hành mới';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items bảo hành và $files tệp đính kèm';
   }
@@ -290,7 +298,14 @@ class AppLocalizationsVi extends AppLocalizations {
       'Phân tách các giá trị bằng dấu phẩy, ví dụ 30, 7, 1. Dùng 0 cho ngày hết hạn.';
 
   @override
+  String get invalidReminderDays =>
+      'Nhập từ 1 đến 12 giá trị không trùng nhau, mỗi giá trị từ 0 đến 3.650 ngày.';
+
+  @override
   String get reminderHour => 'Giờ nhắc (0-23)';
+
+  @override
+  String get invalidReminderHour => 'Nhập giờ từ 0 đến 23.';
 
   @override
   String get reminderLimit =>

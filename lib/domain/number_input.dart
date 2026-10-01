@@ -35,9 +35,7 @@ String? canonicalPriceInput(String text) {
 }
 
 List<int>? parseReminderDays(String text) {
-  final parts = normalizeDigits(
-    text,
-  ).trim().split(RegExp(r'[,;\u060c\s]+'));
+  final parts = normalizeDigits(text).trim().split(RegExp(r'[,;\u060c\s]+'));
   if (parts.isEmpty || parts.length > 12) return null;
   final days = <int>[];
   for (final part in parts) {

@@ -174,10 +174,7 @@ void main() {
       '2026-01-31T09:00:00+25:00',
     ]) {
       final json = sampleItem().toJson()..['updated_at'] = timestamp;
-      expect(
-        () => WarrantyItem.fromJson(json),
-        throwsA(isA<KepliException>()),
-      );
+      expect(() => WarrantyItem.fromJson(json), throwsA(isA<KepliException>()));
     }
   });
 }

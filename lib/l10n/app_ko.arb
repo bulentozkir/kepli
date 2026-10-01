@@ -18,6 +18,7 @@
   "expiringSoon": "만료 예정",
   "expired": "만료됨",
   "claimed": "보증 청구됨",
+  "status": "상태",
   "noWarranties": "아직 보증이 없습니다",
   "getStarted": "구매 내역을 추가하고 영수증, 보증서, 연락처를 한곳에 보관하세요.",
   "noMatches": "일치하는 보증이 없습니다",

@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -28,7 +27,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get addWarranty => 'Tambah garansi';
 
   @override
-  String get editWarranty => 'Edit garansi';
+  String get editWarranty => 'Sunting garansi';
 
   @override
   String get save => 'Simpan';
@@ -64,6 +63,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get claimed => 'Sudah diklaim';
 
   @override
+  String get status => 'Status';
+
+  @override
   String get noWarranties => 'Belum ada garansi';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get years => 'Tahun';
+
+  @override
+  String get customDuration => 'Durasi khusus';
 
   @override
   String get name => 'Nama';
@@ -230,6 +235,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get backupPreview => 'Tinjau cadangan';
 
   @override
+  String get newWarranties => 'Garansi baru';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items garansi dan $files lampiran';
   }
@@ -291,7 +299,14 @@ class AppLocalizationsId extends AppLocalizations {
       'Pisahkan nilai dengan koma, misalnya 30, 7, 1. Gunakan 0 untuk tanggal berakhir.';
 
   @override
+  String get invalidReminderDays =>
+      'Masukkan 1 hingga 12 nilai yang berbeda, masing-masing antara 0 dan 3.650 hari.';
+
+  @override
   String get reminderHour => 'Jam pengingat (0-23)';
+
+  @override
+  String get invalidReminderHour => 'Masukkan jam antara 0 dan 23.';
 
   @override
   String get reminderLimit =>

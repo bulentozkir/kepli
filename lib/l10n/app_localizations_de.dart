@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get claimed => 'In Anspruch genommen';
 
   @override
+  String get status => 'Status';
+
+  @override
   String get noWarranties => 'Noch keine Garantien';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get years => 'Jahre';
+
+  @override
+  String get customDuration => 'Benutzerdefinierte Dauer';
 
   @override
   String get name => 'Bezeichnung';
@@ -193,7 +198,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get invalidCurrency =>
-      'Gib einen dreistelligen Währungscode ein, zum Beispiel USD.';
+      'Gib einen Währungscode aus drei Buchstaben ein, zum Beispiel USD.';
 
   @override
   String get invalidEmail => 'Gib eine gültige E-Mail-Adresse ein.';
@@ -229,6 +234,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupPreview => 'Sicherung prüfen';
+
+  @override
+  String get newWarranties => 'Neue Garantien';
 
   @override
   String backupSummary(int items, int files) {
@@ -292,7 +300,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Trenne die Werte durch Kommas, zum Beispiel 30, 7, 1. Verwende 0 für den Ablauftag.';
 
   @override
+  String get invalidReminderDays =>
+      'Gib 1 bis 12 unterschiedliche Werte ein, jeweils zwischen 0 und 3.650 Tagen.';
+
+  @override
   String get reminderHour => 'Uhrzeit der Erinnerung (0–23)';
+
+  @override
+  String get invalidReminderHour => 'Gib eine Uhrzeit von 0 bis 23 Uhr ein.';
 
   @override
   String get reminderLimit =>
@@ -336,7 +351,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get accessibilityHelp =>
-      'Kepli berücksichtigt auch die Systemeinstellungen für Textgröße, Sprachausgabe, Kontrast und reduzierte Bewegung. Alle Aktionen sind ohne Gesten verfügbar.';
+      'Kepli berücksichtigt auch die Systemeinstellungen für Textgröße, Screenreader, Kontrast und reduzierte Bewegung. Alle Aktionen sind ohne Gesten verfügbar.';
 
   @override
   String get language => 'Sprache';

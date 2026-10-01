@@ -15,7 +15,7 @@ class AttachmentDigest {
 
 /// The same conservative file policy is used for imports, restores and exports.
 abstract final class AttachmentFiles {
-  static const maxAttachmentBytes = 25 * 1024 * 1024;
+  static const maxAttachmentBytes = 256 * 1024 * 1024;
   static const extensions = <String, List<String>>{
     'image/jpeg': ['jpg', 'jpeg'],
     'image/png': ['png'],
@@ -46,7 +46,7 @@ abstract final class AttachmentFiles {
         attachment.size > maxAttachmentBytes) {
       throw KepliException(
         'Invalid attachment "${attachment.originalName}". '
-        'Its format must match its extension and its size must be 1 byte to 25 MiB.',
+        'Its format must match its extension and its size must be 1 byte to 256 MiB.',
       );
     }
   }
@@ -56,8 +56,9 @@ abstract final class AttachmentFiles {
     if (parts.length != 3 ||
         parts.first != 'attachments' ||
         !isUuid(parts[1]) ||
-        !RegExp(r'^[0-9a-fA-F-]{36}\.[a-zA-Z0-9]{1,10}$')
-            .hasMatch(parts.last) ||
+        !RegExp(
+          r'^[0-9a-fA-F-]{36}\.[a-zA-Z0-9]{1,10}$',
+        ).hasMatch(parts.last) ||
         !isUuid(p.posix.basenameWithoutExtension(parts.last))) {
       throw const KepliException('An attachment has an unsafe file path.');
     }
@@ -171,7 +172,7 @@ abstract final class AttachmentFiles {
     final length = await source.length();
     if (length <= 0 || length > maxAttachmentBytes) {
       throw const KepliException(
-        'Attachments must be between 1 byte and 25 MiB.',
+        'Attachments must be between 1 byte and 256 MiB.',
       );
     }
     final digestSink = _DigestSink();
@@ -182,7 +183,9 @@ abstract final class AttachmentFiles {
       await for (final bytes in source.openRead()) {
         count += bytes.length;
         if (count > maxAttachmentBytes) {
-          throw const KepliException('An attachment exceeds the 25 MiB limit.');
+          throw const KepliException(
+            'An attachment exceeds the 256 MiB limit.',
+          );
         }
         if (header.length < 16) {
           header.addAll(bytes.take(16 - header.length));

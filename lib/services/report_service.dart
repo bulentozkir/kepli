@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
+import 'dart:isolate';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:csv/csv.dart';
-import 'package:flutter/services.dart';
+import 'package:image/image.dart' as imaging;
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,6 +16,10 @@ import 'package:uuid/uuid.dart';
 import '../data/attachment_files.dart';
 import '../data/vault_repository.dart';
 import '../domain/models.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/value_labels.dart';
+import 'document_scanner.dart';
+import 'pdf_fonts.dart';
 
 class ReportService {
   ReportService({
@@ -36,10 +43,12 @@ class ReportService {
     'Attachment names',
     'Created at (UTC)',
     'Updated at (UTC)',
+    'Sales contacts',
+    'Service contacts',
   ];
 
   // Bound image decoding and PDF memory use. Originals remain untouched.
-  static const maxSourceImagePixels = 40 * 1024 * 1024;
+  static const maxSourceImagePixels = DocumentScanner.maxPixels;
   static const maxReportImagePixels = 32 * 1024 * 1024;
   static const maxReportImageBytes = 64 * 1024 * 1024;
 
@@ -85,9 +94,25 @@ class ReportService {
         ),
         item.createdAt.toUtc().toIso8601String(),
         item.updatedAt.toUtc().toIso8601String(),
+        _safeText(_contactText(item.contacts, ContactRole.sales)),
+        _safeText(_contactText(item.contacts, ContactRole.service)),
       ];
     }
   }
+
+  static String _contactText(List<ItemContact> contacts, ContactRole role) =>
+      contacts
+          .where((contact) => contact.role == role)
+          .map(
+            (contact) => [
+              contact.name,
+              contact.organization,
+              contact.phone,
+              contact.email,
+              contact.notes,
+            ].nonNulls.where((value) => value.isNotEmpty).join(' | '),
+          )
+          .join('\n');
 
   static String _safeText(String value) {
     final formula = RegExp(r'^[\s\u0000-\u0020\u007f-\u009f\uFEFF]*[=+\-@]');
@@ -127,70 +152,142 @@ class ReportService {
         'Export the original files in a ZIP backup instead.',
       );
     }
-    final theme = await _loadFonts();
+    final locale = snapshot.settings.languageCode;
+    await initializeDateFormatting(locale);
+    final strings = lookupAppLocalizations(ui.Locale(locale));
+    final direction = const ['ar', 'fa', 'ur'].contains(locale)
+        ? pw.TextDirection.rtl
+        : pw.TextDirection.ltr;
+    final dateFormat = DateFormat.yMMMd(locale);
+    final today = CalendarDate.fromDateTime(DateTime.now());
+    final fields = <List<String>>[
+      [strings.name, current.name],
+      [strings.category, localizeCategory(strings, current.category)],
+      [strings.purchaseDate, dateFormat.format(current.purchaseDate.localDate)],
+      [
+        strings.warrantyLength,
+        '${NumberFormat.decimalPattern(locale).format(current.warrantyLengthMonths)} '
+            '${strings.months}',
+      ],
+      [strings.expiryDate, dateFormat.format(current.expiryDate.localDate)],
+      [strings.status, localizeStatus(strings, current.statusAt(today))],
+      [
+        strings.price,
+        current.price == null
+            ? strings.notSet
+            : '${current.price} ${current.currency}',
+      ],
+      [strings.vendor, current.vendor ?? strings.notSet],
+      ['ID', current.id],
+    ];
+    final fontText = <String>[
+      for (final field in fields) ...field,
+      strings.reportTitle,
+      strings.documentFooter,
+      strings.pageNumber(100),
+      strings.notes,
+      strings.notSet,
+      strings.attachments,
+      strings.pdfReferences,
+      strings.contacts,
+      strings.salesContact,
+      strings.serviceContact,
+      strings.organization,
+      strings.phone,
+      strings.email,
+      strings.contactNotes,
+      current.notes ?? '',
+      for (final attachment in current.attachments) ...[
+        attachment.originalName,
+        localizeAttachmentRole(strings, attachment.role),
+      ],
+      for (final contact in current.contacts) ...[
+        contact.name,
+        contact.organization ?? '',
+        contact.phone ?? '',
+        contact.email ?? '',
+        contact.notes ?? '',
+      ],
+    ];
+    final fonts = await loadReportFonts(fontText);
     final document = pw.Document(
-      theme: theme,
-      title: 'Kepli warranty report: ${current.name}',
+      theme: pw.ThemeData.withFont(
+        base: fonts.regular,
+        bold: fonts.bold,
+        fontFallback: fonts.fallback,
+      ),
+      title: 'Kepli ${strings.reportTitle}: ${current.name}',
       author: 'Kepli',
       creator: 'Kepli (offline)',
     );
-    final today = CalendarDate.fromDateTime(DateTime.now());
-    final fields = <List<String>>[
-      ['Item', current.name],
-      ['Category', current.category],
-      ['Purchase date', current.purchaseDate.toString()],
-      ['Warranty', '${current.warrantyLengthMonths} months'],
-      ['Expiry date', current.expiryDate.toString()],
-      ['Status', current.statusAt(today).name],
-      [
-        'Price',
-        current.price == null
-            ? 'Not recorded'
-            : '${current.price} ${current.currency}',
-      ],
-      ['Store / vendor', current.vendor ?? 'Not recorded'],
-      ['Item ID', current.id],
-      ['Created (UTC)', current.createdAt.toUtc().toIso8601String()],
-      ['Updated (UTC)', current.updatedAt.toUtc().toIso8601String()],
-    ];
+    String attachmentLabel(WarrantyAttachment attachment) {
+      final contact = current.contacts
+          .where((contact) => contact.id == attachment.contactId)
+          .firstOrNull;
+      return '${localizeAttachmentRole(strings, attachment.role)}'
+          '${contact == null ? '' : ' - ${contact.name}'}: '
+          '${attachment.originalName}';
+    }
+
     document.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(36),
+        textDirection: direction,
         maxPages: 100,
         footer: (context) => pw.Text(
-          'Kepli · Private, offline warranty report · Page ${context.pageNumber}',
+          '${strings.documentFooter} - ${strings.pageNumber(context.pageNumber)}',
           style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
         ),
         build: (context) => [
-          pw.Header(level: 0, text: 'Warranty report'),
+          pw.Header(level: 0, text: strings.reportTitle),
           pw.TableHelper.fromTextArray(
             data: fields,
             headerCount: 0,
             columnWidths: {0: const pw.FixedColumnWidth(110)},
-            cellAlignment: pw.Alignment.topLeft,
+            cellAlignment: direction == pw.TextDirection.rtl
+                ? pw.Alignment.topRight
+                : pw.Alignment.topLeft,
             cellPadding: const pw.EdgeInsets.all(6),
             cellStyle: const pw.TextStyle(fontSize: 10),
           ),
           pw.SizedBox(height: 16),
-          pw.Header(level: 1, text: 'Notes'),
-          pw.Paragraph(
-            text: current.notes?.isNotEmpty == true
-                ? current.notes!
-                : 'No notes.',
+          pw.Header(level: 1, text: strings.notes),
+          pw.Text(
+            current.notes?.isNotEmpty == true ? current.notes! : strings.notSet,
+            overflow: pw.TextOverflow.span,
           ),
-          pw.Header(level: 1, text: 'Attachments'),
+          if (current.contacts.isNotEmpty) ...[
+            pw.SizedBox(height: 16),
+            pw.Header(level: 1, text: strings.contacts),
+            for (final contact in current.contacts) ...[
+              pw.Header(
+                level: 2,
+                text:
+                    '${localizeContactRole(strings, contact.role)}: ${contact.name}',
+              ),
+              for (final detail in [
+                (strings.organization, contact.organization),
+                (strings.phone, contact.phone),
+                (strings.email, contact.email),
+                (strings.contactNotes, contact.notes),
+              ])
+                if (detail.$2 != null && detail.$2!.isNotEmpty)
+                  pw.Text(
+                    '${detail.$1}: ${detail.$2}',
+                    overflow: pw.TextOverflow.span,
+                  ),
+            ],
+          ],
+          pw.SizedBox(height: 16),
+          pw.Header(level: 1, text: strings.attachments),
+          if (current.attachments.any((attachment) => attachment.isPdf))
+            pw.Paragraph(text: strings.pdfReferences),
           if (current.attachments.isEmpty)
-            pw.Paragraph(text: 'No attachments.')
+            pw.Paragraph(text: strings.notSet)
           else
             ...current.attachments.map(
-              (attachment) => pw.Paragraph(
-                text: attachment.isPdf
-                    ? 'PDF reference: ${attachment.originalName}\n'
-                          'Original PDF is not embedded. Include it separately or share the ZIP backup.'
-                    : '${attachment.role.name}: ${attachment.originalName}\n'
-                          'Image included on a following page.',
-              ),
+              (attachment) => pw.Paragraph(text: attachmentLabel(attachment)),
             ),
         ],
       ),
@@ -203,11 +300,12 @@ class ReportService {
         pw.Page(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(36),
+          textDirection: direction,
           build: (context) => pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                '${attachment.role.name}: ${attachment.originalName}',
+                attachmentLabel(attachment),
                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 12),
@@ -218,7 +316,7 @@ class ReportService {
               ),
               pw.SizedBox(height: 12),
               pw.Text(
-                'Original SHA-256: ${attachment.sha256}',
+                'SHA-256: ${attachment.sha256}',
                 style: const pw.TextStyle(fontSize: 8),
               ),
             ],
@@ -240,82 +338,39 @@ class ReportService {
     }
   });
 
-  static Future<pw.ThemeData> _loadFonts() async {
-    try {
-      final regular = await rootBundle.load(
-        'assets/fonts/NotoSans-Regular.ttf',
-      );
-      final bold = await rootBundle.load('assets/fonts/NotoSans-Bold.ttf');
-      return pw.ThemeData.withFont(
-        base: pw.Font.ttf(regular),
-        bold: pw.Font.ttf(bold),
-      );
-    } catch (error) {
-      throw KepliException(
-        'The bundled offline PDF fonts could not be loaded. Reinstall Kepli. ($error)',
-      );
-    }
-  }
-
   Future<({pw.MemoryImage image, int pixels})> _decodeImage(
     WarrantyAttachment attachment,
     int remainingPixels,
   ) async {
-    ui.ImmutableBuffer? buffer;
-    ui.ImageDescriptor? descriptor;
-    ui.Codec? codec;
-    ui.Image? image;
     try {
-      final bytes = await _repository.attachmentFile(attachment).readAsBytes();
-      buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      descriptor = await ui.ImageDescriptor.encoded(buffer);
-      if (descriptor.width * descriptor.height > maxSourceImagePixels) {
-        throw KepliException(
-          'Image "${attachment.originalName}" exceeds the 40-megapixel decoding limit.',
-        );
-      }
-      final scale = math.min(
-        1.0,
-        2400 / math.max(descriptor.width, descriptor.height),
+      final bytes = await _renderImage(
+        _repository.attachmentFile(attachment).path,
       );
-      final width = math.max(1, (descriptor.width * scale).round());
-      final height = math.max(1, (descriptor.height * scale).round());
-      final pixels = width * height;
+      final descriptor = imaging.JpegDecoder().startDecode(bytes);
+      if (descriptor == null) {
+        throw const KepliException('The receipt preview could not be decoded.');
+      }
+
+      final pixels = descriptor.width * descriptor.height;
       if (pixels > remainingPixels) {
         throw const KepliException(
           'This report exceeds the 32-megapixel rendered-image safety limit. '
           'Export the original images in a ZIP backup instead.',
         );
       }
-      codec = await descriptor.instantiateCodec(
-        targetWidth: width,
-        targetHeight: height,
-      );
-      image = (await codec.getNextFrame()).image;
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (png == null) {
-        throw const KepliException('The decoded image could not be encoded.');
-      }
-      return (
-        image: pw.MemoryImage(
-          png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
-        ),
-        pixels: pixels,
-      );
-    } on KepliException {
-      rethrow;
-    } catch (error) {
+      return (image: pw.MemoryImage(bytes), pixels: pixels);
+    } on Exception catch (error) {
       throw KepliException(
         'Receipt image "${attachment.originalName}" could not be decoded. '
         'It may be damaged or unsupported; no report was exported. ($error)',
       );
-    } finally {
-      image?.dispose();
-      codec?.dispose();
-      descriptor?.dispose();
-      buffer?.dispose();
     }
   }
+
+  static Future<Uint8List> _renderImage(String path) => Isolate.run(
+    () =>
+        DocumentScanner.processPage(ScanPage(sourcePath: path, enhance: false)),
+  );
 
   Future<Directory> _newDirectory() async {
     final managed = p.join(_repository.root.path, 'attachments');

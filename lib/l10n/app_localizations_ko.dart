@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get claimed => '보증 청구됨';
 
   @override
+  String get status => '상태';
+
+  @override
   String get noWarranties => '아직 보증이 없습니다';
 
   @override
@@ -89,6 +91,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get years => '년';
+
+  @override
+  String get customDuration => '사용자 지정 기간';
 
   @override
   String get name => '이름';
@@ -227,6 +232,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupPreview => '백업 검토';
 
   @override
+  String get newWarranties => '새 보증';
+
+  @override
   String backupSummary(int items, int files) {
     return '보증 $items개 및 첨부 파일 $files개';
   }
@@ -285,7 +293,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reminderDaysHelp => '30, 7, 1과 같이 값을 쉼표로 구분하세요. 만료일 당일은 0을 사용하세요.';
 
   @override
+  String get invalidReminderDays => '0~3,650일 사이의 중복되지 않는 값을 1~12개 입력하세요.';
+
+  @override
   String get reminderHour => '알림 시각(0~23시)';
+
+  @override
+  String get invalidReminderHour => '0~23 사이의 시간을 입력하세요.';
 
   @override
   String get reminderLimit =>
@@ -376,7 +390,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get about => 'Kepli 정보';
 
   @override
-  String get privacyTitle => '내 기기에. 나만 볼 수 있게. 내 것으로.';
+  String get privacyTitle => '내 기기에. 비공개로. 내 것으로.';
 
   @override
   String get privacyBody =>

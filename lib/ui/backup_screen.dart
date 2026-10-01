@@ -204,15 +204,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             const SizedBox(height: 8),
             Text(
               l10n.exportedOn(
-                DateFormat.yMMMd(l10n.localeName)
-                    .add_jm()
-                    .format(preview.exportedAt.toLocal()),
+                DateFormat.yMMMd(
+                  l10n.localeName,
+                ).add_jm().format(preview.exportedAt.toLocal()),
                 preview.platform,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '${l10n.addWarranty}: ${l10n.itemCount(preview.newItemCount)}',
+              '${l10n.newWarranties}: ${numberLabel(context, preview.newItemCount)}',
             ),
             const SizedBox(height: 16),
             ChoiceField<RestoreMode>(

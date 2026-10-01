@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get claimed => '已申请保修';
 
   @override
+  String get status => '状态';
+
+  @override
   String get noWarranties => '暂无保修';
 
   @override
@@ -89,6 +91,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get years => '年';
+
+  @override
+  String get customDuration => '自定义期限';
 
   @override
   String get name => '名称';
@@ -226,6 +231,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupPreview => '查看备份';
 
   @override
+  String get newWarranties => '新增保修';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items 项保修和 $files 个附件';
   }
@@ -284,7 +292,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reminderDaysHelp => '用逗号分隔数值，例如 30, 7, 1。用 0 表示到期当天。';
 
   @override
+  String get invalidReminderDays => '请输入 1 至 12 个互不重复的数值，每个数值须在 0 至 3,650 天之间。';
+
+  @override
   String get reminderHour => '提醒时刻（0–23 时）';
+
+  @override
+  String get invalidReminderHour => '请输入 0 至 23 之间的小时数。';
 
   @override
   String get reminderLimit => '操作系统的队列只能容纳最近的提醒。请定期打开 Kepli 以补充队列。';

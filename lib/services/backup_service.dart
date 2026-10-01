@@ -56,11 +56,11 @@ class BackupService {
   // Safety limits apply before decompression and to actual streamed output.
   // ZIP64, encryption, split archives and methods other than store/deflate
   // are deliberately unsupported. No full archive is materialized in memory.
-  static const maxExpandedBytes = 256 * 1024 * 1024;
-  static const maxArchiveBytes = 272 * 1024 * 1024;
-  static const maxManifestBytes = 4 * 1024 * 1024;
-  static const maxEntries = 4096;
-  static const maxCentralDirectoryBytes = 2 * 1024 * 1024;
+  static const maxExpandedBytes = 2 * 1024 * 1024 * 1024;
+  static const maxArchiveBytes = maxExpandedBytes + 16 * 1024 * 1024;
+  static const maxManifestBytes = 16 * 1024 * 1024;
+  static const maxEntries = 20000;
+  static const maxCentralDirectoryBytes = 8 * 1024 * 1024;
 
   final VaultRepository _repository;
   final Directory _temporaryDirectory;
@@ -91,8 +91,8 @@ class BackupService {
         total > maxExpandedBytes ||
         attachments.length + 1 > maxEntries) {
       throw const KepliException(
-        'This backup exceeds the safety limits: 256 MiB expanded, '
-        '4 MiB manifest or 4,096 ZIP entries.',
+        'This backup exceeds the safety limits: 2 GiB expanded, '
+        '16 MiB manifest or 20,000 ZIP entries.',
       );
     }
     final directory = await _newDirectory('export');
@@ -123,7 +123,7 @@ class BackupService {
       }
       if (await output.length() > maxArchiveBytes) {
         throw const KepliException(
-          'The ZIP exceeds the 272 MiB archive limit.',
+          'The ZIP exceeds the 2 GiB plus 16 MiB archive limit.',
         );
       }
       return output;
@@ -379,7 +379,7 @@ class BackupService {
     }
     if (paths.length + 1 > maxEntries || size > maxExpandedBytes) {
       throw const KepliException(
-        'The backup exceeds the 256 MiB or 4,096-entry safety limit.',
+        'The backup exceeds the 2 GiB or 20,000-entry safety limit.',
       );
     }
   }
@@ -432,7 +432,7 @@ class BackupService {
     final length = await source.length();
     if (length < 22 || length > maxArchiveBytes) {
       throw const KepliException(
-        'The ZIP is empty, invalid or larger than 272 MiB.',
+        'The ZIP is empty, invalid or larger than 2 GiB plus 16 MiB.',
       );
     }
     final output = await target.open(mode: FileMode.writeOnly);
@@ -442,7 +442,7 @@ class BackupService {
         written += bytes.length;
         if (written > maxArchiveBytes) {
           throw const KepliException(
-            'The ZIP exceeds the 272 MiB archive limit.',
+            'The ZIP exceeds the 2 GiB plus 16 MiB archive limit.',
           );
         }
         await output.writeFrom(bytes);

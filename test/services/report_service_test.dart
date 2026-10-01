@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:csv/csv.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as imaging;
 import 'package:kepli/domain/models.dart';
 import 'package:kepli/services/report_service.dart';
 import 'package:uuid/uuid.dart';
@@ -24,28 +24,31 @@ void main() {
   });
   tearDown(() async => harness.dispose());
 
-  test('CSV has explicit columns and round-trips quotes, commas, newlines and Unicode', () async {
-    final item = sampleItem(
-      name: 'Café, "Drill"\nLarge',
-      vendor: 'Shop, "Counter 2"',
-      notes: 'Line one\r\nLine two, with "quotes"',
-      price: '1234.50',
-    );
-    await harness.repository.saveItem(item);
-    final file = await service.exportCsv(await harness.repository.load());
-    final text = await file.readAsString();
-    final rows = Csv().decode(text);
-    expect(rows.first, ReportService.csvColumns);
-    expect(rows, hasLength(2));
-    expect(rows[1][1], item.name);
-    expect(rows[1][4], '1234.50');
-    expect(rows[1][6], item.vendor);
-    expect(rows[1][10], item.notes);
-    expect(text, contains('""Drill""'));
-    expect(text, contains('\r\n'));
-    expect(rows[1][8], '2025-02-28');
-    expect(rows[1][14], item.updatedAt.toUtc().toIso8601String());
-  });
+  test(
+    'CSV has explicit columns and round-trips quotes, commas, newlines and Unicode',
+    () async {
+      final item = sampleItem(
+        name: 'Café, "Drill"\nLarge',
+        vendor: 'Shop, "Counter 2"',
+        notes: 'Line one\r\nLine two, with "quotes"',
+        price: '1234.50',
+      );
+      await harness.repository.saveItem(item);
+      final file = await service.exportCsv(await harness.repository.load());
+      final text = await file.readAsString();
+      final rows = Csv().decode(text);
+      expect(rows.first, ReportService.csvColumns);
+      expect(rows, hasLength(2));
+      expect(rows[1][1], item.name);
+      expect(rows[1][4], '1234.50');
+      expect(rows[1][6], item.vendor);
+      expect(rows[1][10], item.notes);
+      expect(text, contains('""Drill""'));
+      expect(text, contains('\r\n'));
+      expect(rows[1][8], '2025-02-28');
+      expect(rows[1][14], item.updatedAt.toUtc().toIso8601String());
+    },
+  );
 
   test(
     'CSV neutralizes formula prefixes in every untrusted textual field',
@@ -96,8 +99,9 @@ void main() {
         originalName: '@receipt.pdf',
       );
       final rows = Csv().decode(
-        await (await service.exportCsv(await harness.repository.load()))
-            .readAsString(),
+        await (await service.exportCsv(
+          await harness.repository.load(),
+        )).readAsString(),
       );
       expect(rows[1][2], "'=Custom category");
       expect(rows[1][12], "'@receipt.pdf");
@@ -110,8 +114,9 @@ void main() {
     () async {
       await harness.repository.saveItem(sampleItem(claimed: true, price: null));
       final rows = Csv().decode(
-        await (await service.exportCsv(await harness.repository.load()))
-            .readAsString(),
+        await (await service.exportCsv(
+          await harness.repository.load(),
+        )).readAsString(),
       );
       expect(rows[1][9], 'claimed');
       expect(rows[1][4], '');
@@ -131,66 +136,66 @@ void main() {
     },
   );
 
-  test('offline PDF is a complete document with image and PDF reference attachments', () async {
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder);
-    canvas.drawColor(const ui.Color(0xff445566), ui.BlendMode.src);
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(40, 30);
-    final png = (await image.toByteData(format: ui.ImageByteFormat.png))!;
-    final imageFile = await harness.source(
-      png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
-      suffix: 'png',
-    );
-    image.dispose();
-    picture.dispose();
-    final pdfFile = await harness.source(smallPdf);
-    await harness.repository.saveItem(
-      sampleItem(
-        name: r'Drill (large) \ Model',
-        notes: 'Café — "proof", original receipt.',
-      ),
-      additions: [
-        PendingAttachment(
-          sourcePath: imageFile.path,
-          originalName: 'receipt (photo).png',
-          mimeType: 'image/png',
+  test(
+    'offline PDF is a complete document with image and PDF reference attachments',
+    () async {
+      final image = imaging.Image(width: 40, height: 30);
+      imaging.fill(image, color: imaging.ColorRgb8(68, 85, 102));
+      final imageFile = await harness.source(
+        imaging.encodePng(image),
+        suffix: 'png',
+      );
+      final pdfFile = await harness.source(smallPdf);
+      await harness.repository.saveItem(
+        sampleItem(
+          name: r'Drill (large) \ Model',
+          notes: 'Café — "proof", original receipt.',
         ),
-        PendingAttachment(
-          sourcePath: pdfFile.path,
-          originalName: 'original warranty.pdf',
-          mimeType: 'application/pdf',
-        ),
-      ],
-    );
-    final item = (await harness.repository.load()).items.single;
-    final report = await service.exportItemPdf(item);
-    final bytes = await report.readAsBytes();
-    final ascii = latin1.decode(bytes);
-    expect(ascii, startsWith('%PDF-1.'));
-    expect(ascii.substring(ascii.length - 30), contains('%%EOF'));
-    expect(RegExp(r'/Type\s*/Catalog').hasMatch(ascii), isTrue);
-    expect(RegExp(r'/Subtype\s*/Image').hasMatch(ascii), isTrue);
-    expect(ascii, contains('/Font'));
-    expect(bytes.length, greaterThan(1000));
-    expect(
-      (await harness.repository.load()).items.single.toJson(),
-      item.toJson(),
-    );
-  });
+        additions: [
+          PendingAttachment(
+            sourcePath: imageFile.path,
+            originalName: 'receipt (photo).png',
+            mimeType: 'image/png',
+          ),
+          PendingAttachment(
+            sourcePath: pdfFile.path,
+            originalName: 'original warranty.pdf',
+            mimeType: 'application/pdf',
+          ),
+        ],
+      );
+      final item = (await harness.repository.load()).items.single;
+      final report = await service.exportItemPdf(item);
+      final bytes = await report.readAsBytes();
+      final ascii = latin1.decode(bytes);
+      expect(ascii, startsWith('%PDF-1.'));
+      expect(ascii.substring(ascii.length - 30), contains('%%EOF'));
+      expect(RegExp(r'/Type\s*/Catalog').hasMatch(ascii), isTrue);
+      expect(RegExp(r'/Subtype\s*/Image').hasMatch(ascii), isTrue);
+      expect(ascii, contains('/Font'));
+      expect(bytes.length, greaterThan(1000));
+      expect(
+        (await harness.repository.load()).items.single.toJson(),
+        item.toJson(),
+      );
+    },
+  );
 
-  test('PDF uses live metadata under the snapshot lock rather than stale item details', () async {
-    final stale = sampleItem(name: 'Before edit');
-    await harness.repository.saveItem(stale);
-    await harness.repository.saveItem(
-      sampleItem(name: 'After edit', updatedAt: DateTime.utc(2026)),
-    );
-    final output = await service.exportItemPdf(stale);
-    expect(await output.length(), greaterThan(1000));
-    final ascii = latin1.decode(await output.readAsBytes());
-    expect(ascii, contains('After edit'));
-    expect(ascii, isNot(contains('Before edit')));
-  });
+  test(
+    'PDF uses live metadata under the snapshot lock rather than stale item details',
+    () async {
+      final stale = sampleItem(name: 'Before edit');
+      await harness.repository.saveItem(stale);
+      await harness.repository.saveItem(
+        sampleItem(name: 'After edit', updatedAt: DateTime.utc(2026)),
+      );
+      final output = await service.exportItemPdf(stale);
+      expect(await output.length(), greaterThan(1000));
+      final ascii = latin1.decode(await output.readAsBytes());
+      expect(ascii, contains('After edit'));
+      expect(ascii, isNot(contains('Before edit')));
+    },
+  );
 
   test(
     'a damaged image fails visibly instead of disappearing from the PDF',
@@ -251,6 +256,57 @@ void main() {
       );
     },
   );
+
+  test(
+    'reports preserve sales/service contact details and localize offline',
+    () async {
+      final item = sampleItem(
+        name: '保証書',
+        notes: '保管してください',
+        contacts: const [
+          ItemContact(
+            id: 'aaaaaaaa-1111-4111-8111-111111111111',
+            role: ContactRole.sales,
+            name: 'Ada Sales',
+            phone: '+1 555 0100',
+          ),
+          ItemContact(
+            id: 'bbbbbbbb-2222-4222-8222-222222222222',
+            role: ContactRole.service,
+            name: '修理担当',
+            email: 'service@example.test',
+          ),
+        ],
+      );
+      await harness.repository.saveItem(item);
+      final settings = (await harness.repository.load()).settings;
+      await harness.repository.saveSettings(
+        settings.copyWith(languageCode: 'ja'),
+      );
+      final snapshot = await harness.repository.load();
+      final rows = Csv().decode(
+        await (await service.exportCsv(snapshot)).readAsString(),
+      );
+      expect(rows.first, containsAll(['Sales contacts', 'Service contacts']));
+      expect(rows[1][15], contains('Ada Sales'));
+      expect(rows[1][15], contains('+1 555 0100'));
+      expect(rows[1][16], contains('修理担当'));
+      expect(rows[1][16], contains('service@example.test'));
+      final report = await service.exportItemPdf(snapshot.items.single);
+      expect(await report.length(), greaterThan(1000));
+    },
+  );
+
+  test('long notes paginate rather than overflowing the report', () async {
+    final item = sampleItem(notes: 'Keep the original receipt. ' * 500);
+    await harness.repository.saveItem(item);
+    final report = await service.exportItemPdf(item);
+    final content = latin1.decode(await report.readAsBytes());
+    expect(
+      RegExp(r'/Type\s*/Page\b').allMatches(content).length,
+      greaterThan(1),
+    );
+  });
 
   test(
     'PDF refuses a deleted item without exporting a misleading empty report',

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kepli/application/vault_controller.dart';
+import 'package:kepli/app.dart';
 import 'package:kepli/data/kepli_database.dart';
 import 'package:kepli/data/vault_repository.dart';
 import 'package:kepli/domain/models.dart';
@@ -62,9 +63,8 @@ class UiHarness {
     final work = Directory(
       p.join(
         Directory.current.path,
-        'test',
-        'ui',
-        'test-work',
+        '.dart_tool',
+        'kepli-ui-tests',
         const Uuid().v4(),
       ),
     );
@@ -102,6 +102,13 @@ class UiHarness {
     tester.view.physicalSize = size;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() async {
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    });
     final snapshot = await tester.runAsync(() async {
       final current = await repository.load();
       await repository.saveSettings(
@@ -130,17 +137,10 @@ class UiHarness {
               locale: Locale(settings.languageCode),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              theme: ThemeData(
-                useMaterial3: true,
-                materialTapTargetSize: MaterialTapTargetSize.padded,
-                visualDensity: VisualDensity.standard,
-                inputDecorationTheme: const InputDecorationTheme(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.all(16),
-                ),
-                textButtonTheme: TextButtonThemeData(
-                  style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-                ),
+              theme: buildKepliTheme(
+                Brightness.light,
+                settings.highContrast,
+                settings.reduceMotion,
               ),
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(
@@ -149,7 +149,9 @@ class UiHarness {
                   highContrast: settings.highContrast,
                 ),
                 child: Directionality(
-                  textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+                  textDirection: rtl
+                      ? TextDirection.rtl
+                      : Directionality.of(context),
                   child: child!,
                 ),
               ),
@@ -165,10 +167,6 @@ class UiHarness {
   Future<void> dispose() async {
     await repository.close();
     if (await work.exists()) await work.delete(recursive: true);
-    final parent = work.parent;
-    if (await parent.exists() && await parent.list().isEmpty) {
-      await parent.delete();
-    }
   }
 }
 
@@ -225,7 +223,11 @@ class UiFiles extends PlatformFiles {
   Future<String?> pickBackup() async => backupPath;
 
   @override
-  Future<String?> saveOrShare(File file, {Rect? shareOrigin}) async {
+  Future<String?> saveOrShare(
+    File file, {
+    Rect? shareOrigin,
+    String languageCode = 'en',
+  }) async {
     exported.add(file);
     origins.add(shareOrigin);
     return 'Saved to ${file.path}';
@@ -294,9 +296,11 @@ class UiScanner extends DocumentScanner {
 }
 
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
-  await tester.tap(finder);
+  await tester.tap(finder.hitTestable());
   await tester.pump();
 }
 
@@ -306,10 +310,15 @@ Future<void> settleIo(WidgetTester tester, bool Function() done) async {
       () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
     await tester.pump(const Duration(milliseconds: 10));
-    if (done()) {
-      await tester.pumpAndSettle();
+    if (done() &&
+        PaintingBinding.instance.imageCache.pendingImageCount == 0 &&
+        !tester.binding.hasScheduledFrame) {
       return;
     }
   }
-  fail('The UI operation did not finish.');
+  fail(
+    'The UI operation did not finish: condition=${done()}, '
+    'pendingImages=${PaintingBinding.instance.imageCache.pendingImageCount}, '
+    'scheduledFrame=${tester.binding.hasScheduledFrame}.',
+  );
 }

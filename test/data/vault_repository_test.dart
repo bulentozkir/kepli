@@ -152,43 +152,45 @@ void main() {
     );
   });
 
-  test('partial copy failure leaves existing database and attachment bytes untouched', () async {
-    final original = await harness.saveWithPdf(sampleItem());
-    final source = await harness.source(smallPdf);
-    await expectLater(
-      harness.repository.saveItem(
-        original,
-        additions: [
-          PendingAttachment(
-            sourcePath: source.path,
-            originalName: 'good.pdf',
-            mimeType: 'application/pdf',
-          ),
-          PendingAttachment(
-            sourcePath: p.join(harness.base.path, 'missing.pdf'),
-            originalName: 'missing.pdf',
-            mimeType: 'application/pdf',
-          ),
-        ],
-      ),
-      throwsA(isA<KepliException>()),
-    );
-    expect(
-      (await harness.repository.load()).items.single.toJson(),
-      original.toJson(),
-    );
-    final files = await Directory(p.join(harness.root.path, 'attachments'))
-        .list(recursive: true)
-        .where((file) => file is File)
-        .toList();
-    expect(files, hasLength(1));
-    expect(
-      await harness.repository
-          .attachmentFile(original.attachments.single)
-          .readAsBytes(),
-      smallPdf,
-    );
-  });
+  test(
+    'partial copy failure leaves existing database and attachment bytes untouched',
+    () async {
+      final original = await harness.saveWithPdf(sampleItem());
+      final source = await harness.source(smallPdf);
+      await expectLater(
+        harness.repository.saveItem(
+          original,
+          additions: [
+            PendingAttachment(
+              sourcePath: source.path,
+              originalName: 'good.pdf',
+              mimeType: 'application/pdf',
+            ),
+            PendingAttachment(
+              sourcePath: p.join(harness.base.path, 'missing.pdf'),
+              originalName: 'missing.pdf',
+              mimeType: 'application/pdf',
+            ),
+          ],
+        ),
+        throwsA(isA<KepliException>()),
+      );
+      expect(
+        (await harness.repository.load()).items.single.toJson(),
+        original.toJson(),
+      );
+      final files = await Directory(
+        p.join(harness.root.path, 'attachments'),
+      ).list(recursive: true).where((file) => file is File).toList();
+      expect(files, hasLength(1));
+      expect(
+        await harness.repository
+            .attachmentFile(original.attachments.single)
+            .readAsBytes(),
+        smallPdf,
+      );
+    },
+  );
 
   test(
     'delete cascades metadata and only then removes attachment bytes',

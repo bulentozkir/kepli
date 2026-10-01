@@ -13,6 +13,7 @@ class Items extends Table {
   TextColumn get currency => text()();
   TextColumn get vendor => text().nullable()();
   TextColumn get notes => text().nullable()();
+  TextColumn get contactsJson => text().withDefault(const Constant('[]'))();
   BoolColumn get claimed => boolean().withDefault(const Constant(false))();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
@@ -30,6 +31,7 @@ class Attachments extends Table {
   TextColumn get originalName => text()();
   TextColumn get mimeType => text()();
   TextColumn get role => text()();
+  TextColumn get contactId => text().nullable()();
   IntColumn get size => integer()();
   TextColumn get sha256 => text()();
   TextColumn get addedAt => text()();
@@ -50,7 +52,7 @@ class AppMeta extends Table {
 
 @DriftDatabase(tables: [Items, Attachments, AppMeta])
 class KepliDatabase extends _$KepliDatabase {
-  KepliDatabase(QueryExecutor super.executor);
+  KepliDatabase(super.executor);
 
   @override
   int get schemaVersion => 1;

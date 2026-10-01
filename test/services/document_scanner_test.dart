@@ -43,6 +43,20 @@ void main() {
     },
   );
 
+  test('transparent documents are flattened onto a white background', () async {
+    final transparent = imaging.Image(width: 30, height: 30, numChannels: 4);
+    final file = File(p.join(root.path, 'transparent.png'));
+    await file.writeAsBytes(imaging.encodePng(transparent));
+    final bytes = await DocumentScanner.processPage(
+      ScanPage(sourcePath: file.path, enhance: false),
+    );
+    final image = imaging.decodeJpg(bytes)!;
+    final pixel = image.getPixel(0, 0);
+    expect(pixel.r, greaterThanOrEqualTo(250));
+    expect(pixel.g, greaterThanOrEqualTo(250));
+    expect(pixel.b, greaterThanOrEqualTo(250));
+  });
+
   test('produces an offline multipage PDF attachment', () async {
     final result = await scanner.createPdf(
       pages: [

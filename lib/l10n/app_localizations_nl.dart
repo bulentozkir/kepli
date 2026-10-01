@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get claimed => 'Ingeroepen';
 
   @override
+  String get status => 'Status';
+
+  @override
   String get noWarranties => 'Nog geen garanties';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get years => 'Jaren';
+
+  @override
+  String get customDuration => 'Aangepaste duur';
 
   @override
   String get name => 'Naam';
@@ -229,6 +234,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupPreview => 'Reservekopie controleren';
 
   @override
+  String get newWarranties => 'Nieuwe garanties';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items garanties en $files bijlagen';
   }
@@ -291,7 +299,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Scheid de waarden met komma’s, bijvoorbeeld 30, 7, 1. Gebruik 0 voor de vervaldatum.';
 
   @override
+  String get invalidReminderDays =>
+      'Voer 1 tot 12 unieke waarden in, elk tussen 0 en 3.650 dagen.';
+
+  @override
   String get reminderHour => 'Uur van de herinnering (0-23)';
+
+  @override
+  String get invalidReminderHour => 'Voer een uur tussen 0 en 23 in.';
 
   @override
   String get reminderLimit =>

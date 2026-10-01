@@ -103,6 +103,9 @@ class VaultController extends Notifier<VaultState> {
 
   void dismissNotice() => state = state.copyWith(clearNotice: true);
 
+  void updateReminderStatus(ReminderStatus status) =>
+      state = state.copyWith(reminderStatus: status);
+
   void clearRecoveredPhotos() =>
       state = state.copyWith(recoveredPhotos: const []);
 
@@ -127,6 +130,19 @@ class VaultController extends Notifier<VaultState> {
     state = state.copyWith(reminderStatus: status);
   }
 
+  Future<void> _commit(
+    Future<void> Function() mutation, {
+    required String notice,
+  }) async {
+    try {
+      await mutation();
+    } on VaultCleanupException catch (error) {
+      await _reload(notice: error.message);
+      return;
+    }
+    await _reload(notice: notice);
+  }
+
   Future<void> refresh() async {
     if (state.busy) return;
     await _perform(() => _reload());
@@ -136,15 +152,19 @@ class VaultController extends Notifier<VaultState> {
     WarrantyItem item, {
     List<PendingAttachment> additions = const [],
   }) => _perform(() async {
-    await _dependencies.repository.saveItem(item, additions: additions);
-    await _reload(notice: 'Warranty saved on this device.');
+    await _commit(
+      () => _dependencies.repository.saveItem(item, additions: additions),
+      notice: 'Warranty saved on this device.',
+    );
     selectItem(item.id);
   });
 
   Future<void> deleteItem(String id) => _perform(() async {
-    await _dependencies.repository.deleteItem(id);
+    await _commit(
+      () => _dependencies.repository.deleteItem(id),
+      notice: 'Warranty and its attachments deleted.',
+    );
     if (state.selectedItemId == id) selectItem(null);
-    await _reload(notice: 'Warranty and its attachments deleted.');
   });
 
   Future<void> setClaimed(WarrantyItem item, bool claimed) => saveItem(
@@ -158,8 +178,10 @@ class VaultController extends Notifier<VaultState> {
       final status = await _dependencies.reminders.requestPermission();
       state = state.copyWith(reminderStatus: status);
     }
-    await _dependencies.repository.saveSettings(settings);
-    await _reload(notice: 'Settings saved.');
+    await _commit(
+      () => _dependencies.repository.saveSettings(settings),
+      notice: 'Settings saved.',
+    );
   });
 
   Future<void> renameCategory(String oldName, String newName) =>
@@ -186,8 +208,10 @@ class VaultController extends Notifier<VaultState> {
               .toList(),
           settings: settings,
         );
-        await _dependencies.repository.replaceSnapshot(renamed);
-        await _reload(notice: 'Settings saved.');
+        await _commit(
+          () => _dependencies.repository.replaceSnapshot(renamed),
+          notice: 'Settings saved.',
+        );
       });
 
   Future<BackupPreview?> inspectBackup() => _perform(() async {
@@ -201,15 +225,15 @@ class VaultController extends Notifier<VaultState> {
     RestoreMode mode, {
     Set<String> keepLocalIds = const {},
   }) => _perform(() async {
-    await _dependencies.backups.restore(
-      preview,
-      mode,
-      keepLocalIds: keepLocalIds,
-    );
-    selectItem(null);
-    await _reload(
+    await _commit(
+      () => _dependencies.backups.restore(
+        preview,
+        mode,
+        keepLocalIds: keepLocalIds,
+      ),
       notice: 'Backup restored. All referenced attachments verified.',
     );
+    selectItem(null);
   });
 
   Future<void> discardPreview(BackupPreview preview) =>
@@ -221,6 +245,7 @@ class VaultController extends Notifier<VaultState> {
         final notice = await _dependencies.files.saveOrShare(
           file,
           shareOrigin: shareOrigin,
+          languageCode: state.snapshot.settings.languageCode,
         );
         if (notice != null) state = state.copyWith(notice: notice);
       });

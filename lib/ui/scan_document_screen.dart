@@ -416,10 +416,16 @@ class _ScanPreviewState extends State<_ScanPreview> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _stream?.removeListener(_listener);
-    _stream = FileImage(File(widget.page.sourcePath))
-        .resolve(createLocalImageConfiguration(context));
+    _stream = _provider.resolve(createLocalImageConfiguration(context));
     _stream!.addListener(_listener);
   }
+
+  ImageProvider get _provider => ResizeImage(
+    FileImage(File(widget.page.sourcePath)),
+    width: 1400,
+    height: 1400,
+    policy: ResizeImagePolicy.fit,
+  );
 
   @override
   void dispose() {
@@ -499,10 +505,9 @@ class _ScanPreviewState extends State<_ScanPreview> {
                                   0,
                                 ],
                         ),
-                        child: Image.file(
-                          File(page.sourcePath),
+                        child: Image(
+                          image: _provider,
                           fit: BoxFit.fill,
-                          cacheWidth: 1400,
                           errorBuilder: (context, error, stackTrace) =>
                               Text(context.l10n.unavailableImage),
                         ),
@@ -511,8 +516,9 @@ class _ScanPreviewState extends State<_ScanPreview> {
                     CustomPaint(
                       painter: _CropOverlay(
                         page: page,
-                        mask: Theme.of(context).colorScheme.scrim
-                            .withValues(alpha: 0.65),
+                        mask: Theme.of(
+                          context,
+                        ).colorScheme.scrim.withValues(alpha: 0.65),
                         outline: Theme.of(context).colorScheme.primary,
                       ),
                     ),

@@ -546,7 +546,7 @@ class _WarrantyEditorState extends ConsumerState<WarrantyEditor> {
                     controller: _duration,
                     enabled: !busy,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: l10n.warrantyLength),
+                    decoration: InputDecoration(labelText: l10n.customDuration),
                     validator: (value) => _months == null || _expiry == null
                         ? l10n.invalidDuration
                         : null,
@@ -609,8 +609,9 @@ class _WarrantyEditorState extends ConsumerState<WarrantyEditor> {
                     autocorrect: false,
                     decoration: InputDecoration(labelText: l10n.currency),
                     validator: (value) =>
-                        RegExp(r'^[A-Z]{3}$')
-                            .hasMatch(value!.trim().toUpperCase())
+                        RegExp(
+                          r'^[A-Z]{3}$',
+                        ).hasMatch(value!.trim().toUpperCase())
                         ? null
                         : l10n.invalidCurrency,
                   ),

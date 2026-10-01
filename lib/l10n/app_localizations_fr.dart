@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get claimed => 'Réclamation effectuée';
 
   @override
+  String get status => 'Statut';
+
+  @override
   String get noWarranties => 'Aucune garantie pour le moment';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get years => 'Années';
+
+  @override
+  String get customDuration => 'Durée personnalisée';
 
   @override
   String get name => 'Nom';
@@ -231,6 +236,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get backupPreview => 'Examiner la sauvegarde';
 
   @override
+  String get newWarranties => 'Nouvelles garanties';
+
+  @override
   String backupSummary(int items, int files) {
     return '$items garanties et $files pièces jointes';
   }
@@ -292,7 +300,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Séparez les valeurs par des virgules, par exemple 30, 7, 1. Utilisez 0 pour la date d’expiration.';
 
   @override
+  String get invalidReminderDays =>
+      'Saisissez de 1 à 12 valeurs distinctes, chacune comprise entre 0 et 3 650 jours.';
+
+  @override
   String get reminderHour => 'Heure du rappel (0-23)';
+
+  @override
+  String get invalidReminderHour =>
+      'Saisissez une heure comprise entre 0 et 23.';
 
   @override
   String get reminderLimit =>

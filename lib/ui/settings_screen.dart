@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/vault_controller.dart';
 import '../domain/models.dart';
+import '../domain/number_input.dart';
 import '../l10n/language_catalog.dart';
 import 'ui_support.dart';
 
@@ -63,17 +64,7 @@ class SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  List<int>? _parseDays(String text) {
-    final parts = normalizedDigits(text).split(RegExp(r'[,،]'));
-    final values = parts.map((entry) => int.tryParse(entry.trim())).toList();
-    if (values.isEmpty ||
-        values.length > 12 ||
-        values.any((value) => value == null || value < 0 || value > 3650)) {
-      return null;
-    }
-    final days = values.cast<int>();
-    return days.toSet().length == days.length ? days : null;
-  }
+  List<int>? _parseDays(String text) => parseReminderDays(text);
 
   Future<void> _save() async {
     if (_working ||
@@ -93,7 +84,7 @@ class SettingsScreenState extends ConsumerState<SettingsScreen> {
               categories: List.of(_categories),
               reminderDays: _parseDays(_days.text)!,
               remindersEnabled: _enabled,
-              reminderHour: int.parse(normalizedDigits(_hour.text.trim())),
+              reminderHour: parseWholeNumber(_hour.text)!,
               currency: _currency.text.trim().toUpperCase(),
               highContrast: _highContrast,
               reduceMotion: _reduceMotion,
@@ -302,7 +293,7 @@ class SettingsScreenState extends ConsumerState<SettingsScreen> {
                 errorMaxLines: 8,
               ),
               validator: (value) =>
-                  _parseDays(value!) == null ? l10n.reminderDaysHelp : null,
+                  _parseDays(value!) == null ? l10n.invalidReminderDays : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -315,9 +306,9 @@ class SettingsScreenState extends ConsumerState<SettingsScreen> {
                 errorMaxLines: 8,
               ),
               validator: (value) {
-                final hour = int.tryParse(normalizedDigits(value!.trim()));
+                final hour = parseWholeNumber(value!);
                 return hour == null || hour < 0 || hour > 23
-                    ? l10n.reminderHour
+                    ? l10n.invalidReminderHour
                     : null;
               },
             ),

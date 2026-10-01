@@ -1,6 +1,7 @@
 {
   "@@locale": "bn",
   "appTitle": "Kepli",
+  "status": "অবস্থা",
   "tagline": "আপনার ওয়ারেন্টি। আপনার রসিদ। সব আপনারই।",
   "warranties": "ওয়ারেন্টি",
   "backups": "ব্যাকআপ",

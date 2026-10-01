@@ -7,8 +7,7 @@ import 'package:kepli/app.dart';
 double contrast(Color foreground, Color background) {
   final first = foreground.computeLuminance();
   final second = background.computeLuminance();
-  return (math.max(first, second) + 0.05) /
-      (math.min(first, second) + 0.05);
+  return (math.max(first, second) + 0.05) / (math.min(first, second) + 0.05);
 }
 
 void main() {

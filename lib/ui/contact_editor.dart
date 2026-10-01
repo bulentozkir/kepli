@@ -159,8 +159,9 @@ class _ContactEditorState extends State<_ContactEditor> {
                   validator: (value) {
                     final email = value!.trim();
                     return email.isNotEmpty &&
-                            !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                .hasMatch(email)
+                            !RegExp(
+                              r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                            ).hasMatch(email)
                         ? l10n.invalidEmail
                         : null;
                   },

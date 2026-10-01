@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -64,6 +63,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get claimed => 'Dai limewasilishwa';
 
   @override
+  String get status => 'Hali';
+
+  @override
   String get noWarranties => 'Bado hakuna dhamana';
 
   @override
@@ -90,6 +92,9 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get years => 'Miaka';
+
+  @override
+  String get customDuration => 'Muda maalumu';
 
   @override
   String get name => 'Jina';
@@ -218,7 +223,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get backupExplanation =>
-      'Faili moja ya ZIP ina dhamana zako, mawasiliano, mapendeleo na viambatisho asili. Ihamishe hadi kifaa kingine na urejeshe huko. Huu ni uhamishaji wa mwenyewe, si usawazishaji wa kiotomatiki.';
+      'Faili moja ya ZIP ina dhamana zako, mawasiliano, mapendeleo na viambatisho asili. Ihamishe hadi kifaa kingine na uirejeshe huko. Uhamishaji huu unafanywa na wewe, si usawazishaji wa kiotomatiki.';
 
   @override
   String get backupPrivacy =>
@@ -229,6 +234,9 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get backupPreview => 'Kagua nakala rudufu';
+
+  @override
+  String get newWarranties => 'Dhamana mpya';
 
   @override
   String backupSummary(int items, int files) {
@@ -252,7 +260,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get replaceHelp =>
-      'Hubadilisha dhamana na mapendeleo ya kifaa hiki kwa yaliyo kwenye nakala rudufu.';
+      'Hubadilisha dhamana na mapendeleo ya kifaa hiki kwa kutumia yaliyomo kwenye nakala rudufu.';
 
   @override
   String replaceConfirmation(int count) {
@@ -292,7 +300,14 @@ class AppLocalizationsSw extends AppLocalizations {
       'Tenganisha thamani kwa koma, kwa mfano 30, 7, 1. Tumia 0 kwa tarehe ya kuisha.';
 
   @override
+  String get invalidReminderDays =>
+      'Weka thamani 1 hadi 12 zisizojirudia, kila moja ikiwa kati ya siku 0 na 3,650.';
+
+  @override
   String get reminderHour => 'Saa ya kikumbusho (0-23)';
+
+  @override
+  String get invalidReminderHour => 'Weka saa kati ya 0 na 23.';
 
   @override
   String get reminderLimit =>

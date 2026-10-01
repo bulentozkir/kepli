@@ -24,6 +24,9 @@ class VaultRepository {
   final KepliDatabase _database;
   final Directory root;
   final Lock _lock = Lock(reentrant: true);
+  static final Set<String> _openVaults = {};
+  RandomAccessFile? _processLock;
+  String? _lockKey;
   bool _initialized = false;
   bool _closed = false;
 
@@ -113,6 +116,7 @@ class VaultRepository {
             originalName: addition.originalName,
             mimeType: addition.mimeType,
             role: addition.role,
+            contactId: addition.contactId,
             size: digest.size,
             sha256: digest.sha256,
             addedAt: DateTime.now().toUtc(),
@@ -255,13 +259,27 @@ class VaultRepository {
   Future<void> close() => _lock.synchronized(() async {
     if (_closed) return;
     _closed = true;
-    await _database.close();
+    try {
+      await _database.close();
+    } finally {
+      final processLock = _processLock;
+      if (processLock != null) {
+        try {
+          await processLock.unlock();
+        } finally {
+          await processLock.close();
+          _openVaults.remove(_lockKey);
+          _processLock = null;
+        }
+      }
+    }
   });
 
   Future<void> _initialize() async {
     if (_closed) throw StateError('The vault is closed.');
     if (_initialized) return;
     await AttachmentFiles.initialize(root);
+    await _acquireVaultLock();
     await _database.transaction(() async {
       final settings = await (_database.select(
         _database.appMeta,
@@ -284,6 +302,38 @@ class VaultRepository {
     await _cleanupCommitted();
   }
 
+  Future<void> _acquireVaultLock() async {
+    if (_processLock != null) return;
+    var key = await root.resolveSymbolicLinks();
+    if (Platform.isWindows) key = key.toLowerCase();
+    if (!_openVaults.add(key)) {
+      throw const KepliException(
+        'This vault is open in another Kepli window. Close it and retry.',
+      );
+    }
+    RandomAccessFile? handle;
+    var acquired = false;
+    try {
+      handle = await File(
+        p.join(root.path, '.kepli.lock'),
+      ).open(mode: FileMode.append);
+      await handle.lock(FileLock.exclusive);
+      _processLock = handle;
+      _lockKey = key;
+      acquired = true;
+    } on FileSystemException catch (error) {
+      throw KepliException(
+        'The vault could not be locked. Check folder permissions and close '
+        'other Kepli windows, then retry. ${error.message}',
+      );
+    } finally {
+      if (!acquired) {
+        _openVaults.remove(key);
+        await handle?.close();
+      }
+    }
+  }
+
   Future<VaultSnapshot> _readSnapshot() => _database.transaction(() async {
     final storedSettings = await (_database.select(
       _database.appMeta,
@@ -299,7 +349,7 @@ class VaultRepository {
     )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
     final grouped = <String, List<WarrantyAttachment>>{};
     for (final row in attachmentRows) {
-      if (row.role != 'receipt' && row.role != 'product') {
+      if (!AttachmentRole.values.any((role) => role.name == row.role)) {
         throw const KepliException('A saved attachment has an invalid role.');
       }
       (grouped[row.itemId] ??= []).add(
@@ -309,6 +359,7 @@ class VaultRepository {
           originalName: row.originalName,
           mimeType: row.mimeType,
           role: AttachmentRole.values.byName(row.role),
+          contactId: row.contactId,
           size: row.size,
           sha256: row.sha256,
           addedAt: DateTime.parse(row.addedAt).toUtc(),
@@ -336,6 +387,7 @@ class VaultRepository {
               createdAt: DateTime.parse(row.createdAt).toUtc(),
               updatedAt: DateTime.parse(row.updatedAt).toUtc(),
               attachments: grouped[row.id] ?? const [],
+              contacts: _readContacts(row.contactsJson),
             ),
           )
           .toList(),
@@ -344,6 +396,16 @@ class VaultRepository {
     _validate(snapshot);
     return snapshot;
   });
+
+  static List<ItemContact> _readContacts(String encoded) {
+    final decoded = jsonDecode(encoded);
+    if (decoded is! List) {
+      throw const KepliException('Saved contacts must be a list.');
+    }
+    return decoded
+        .map((value) => ItemContact.fromJson(jsonObject(value, 'Contact')))
+        .toList();
+  }
 
   Future<void> _writeSettings(AppSettings settings) => _database
       .into(_database.appMeta)
@@ -369,6 +431,11 @@ class VaultRepository {
             currency: item.currency,
             vendor: Value(item.vendor),
             notes: Value(item.notes),
+            contactsJson: Value(
+              jsonEncode(
+                item.contacts.map((contact) => contact.toJson()).toList(),
+              ),
+            ),
             claimed: Value(item.claimed),
             createdAt: item.createdAt.toUtc().toIso8601String(),
             updatedAt: item.updatedAt.toUtc().toIso8601String(),
@@ -389,6 +456,7 @@ class VaultRepository {
               originalName: attachment.originalName,
               mimeType: attachment.mimeType,
               role: attachment.role.name,
+              contactId: Value(attachment.contactId),
               size: attachment.size,
               sha256: attachment.sha256,
               addedAt: attachment.addedAt.toUtc().toIso8601String(),

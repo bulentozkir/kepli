@@ -1,6 +1,7 @@
 {
   "@@locale": "ja",
   "appTitle": "Kepli",
+  "status": "状態",
   "tagline": "あなたの保証。あなたの領収書。あなたの手元に。",
   "warranties": "保証",
   "backups": "バックアップ",

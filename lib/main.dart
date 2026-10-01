@@ -54,24 +54,30 @@ Future<AppDependencies> initializeKepli() async {
     ),
   );
   final repository = VaultRepository(database: database, root: root);
+  final reminders = ReminderService();
   var initialized = false;
   try {
-    final snapshot = await repository.load();
-    final reminders = ReminderService();
+    VaultSnapshot snapshot;
+    String? notice;
+    try {
+      snapshot = await repository.load();
+    } on VaultCleanupException catch (error) {
+      snapshot = await repository.load();
+      notice = error.message;
+    }
     final initialStatus = await reminders.initialize();
     final status = initialStatus.supported
         ? await reminders.reconcile(snapshot)
         : initialStatus;
     var recovered = <PendingAttachment>[];
-    String? notice;
     try {
       recovered = await files.recoverLostPhotos();
     } on PlatformException catch (error, stack) {
       debugPrintStack(label: error.toString(), stackTrace: stack);
-      notice = error.message ?? error.code;
+      notice = [notice, error.message ?? error.code].nonNulls.join('\n');
     } on KepliException catch (error, stack) {
       debugPrintStack(label: error.toString(), stackTrace: stack);
-      notice = error.message;
+      notice = [notice, error.message].nonNulls.join('\n');
     }
     final dependencies = AppDependencies(
       repository: repository,
@@ -94,7 +100,13 @@ Future<AppDependencies> initializeKepli() async {
     initialized = true;
     return dependencies;
   } finally {
-    if (!initialized) await repository.close();
+    if (!initialized) {
+      try {
+        await reminders.dispose();
+      } finally {
+        await repository.close();
+      }
+    }
   }
 }
 

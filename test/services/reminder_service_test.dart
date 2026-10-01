@@ -340,6 +340,28 @@ void main() {
     expect(selected, [itemId]);
   });
 
+  test('a cold-start tap waits until the UI attaches its callback', () async {
+    final itemId = _snapshot().items.single.id;
+    launch = {
+      'notificationLaunchedApp': true,
+      'notificationResponse': {
+        'notificationId': 1,
+        'notificationResponseType': 0,
+        'payload': itemId,
+      },
+    };
+    await service.dispose();
+    service = ReminderService();
+    await service.initialize();
+    final selected = <String>[];
+    service.onItemSelected = selected.add;
+    await Future<void>.delayed(Duration.zero);
+    expect(selected, [itemId]);
+    service.onItemSelected = selected.add;
+    await Future<void>.delayed(Duration.zero);
+    expect(selected, [itemId]);
+  });
+
   test(
     'Linux reports app-open-only capability and uses no native scheduling API',
     () async {
@@ -350,7 +372,7 @@ void main() {
       service = ReminderService();
       final status = await service.reconcile(_snapshot());
       expect(linux.initialized, isTrue);
-      expect(status.supported, isFalse);
+      expect(status.supported, isTrue);
       expect(status.authorized, isTrue);
       expect(status.scheduledCount, 3);
       expect(status.message, contains('only work while Kepli is open'));

@@ -1,6 +1,7 @@
 {
   "@@locale": "zh",
   "appTitle": "Kepli",
+  "status": "状态",
   "tagline": "你的保修，你的收据，由你掌握。",
   "warranties": "保修",
   "backups": "备份",
