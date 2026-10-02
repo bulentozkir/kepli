@@ -8,8 +8,8 @@ import 'package:file_selector_platform_interface/file_selector_platform_interfac
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kepli/domain/models.dart';
 import 'package:kepli/data/attachment_files.dart';
+import 'package:kepli/domain/models.dart';
 import 'package:kepli/services/platform_files.dart';
 import 'package:path/path.dart' as p;
 
@@ -53,7 +53,7 @@ class _Picker extends FilePickerPlatform {
     String? initialDirectory,
     FileType type = FileType.any,
     List<String>? allowedExtensions,
-    Function(FilePickerStatus)? onFileLoading,
+    void Function(FilePickerStatus)? onFileLoading,
     int compressionQuality = 0,
     AndroidOptions androidOptions = const AndroidOptions(),
     DarwinOptions darwinOptions = const DarwinOptions(),
@@ -71,7 +71,7 @@ class _Picker extends FilePickerPlatform {
     String? initialDirectory,
     FileType type = FileType.any,
     List<String>? allowedExtensions,
-    Function(FilePickerStatus)? onFileLoading,
+    void Function(FilePickerStatus)? onFileLoading,
     int compressionQuality = 0,
     AndroidOptions androidOptions = const AndroidOptions(),
     DarwinOptions darwinOptions = const DarwinOptions(),
@@ -287,7 +287,8 @@ void main() {
         final destination = File(p.join(work.path, 'chosen.pdf'));
         savePicker.destination = destination;
         final result = await files.saveOrShare(original);
-        expect(result, contains(destination.path));
+        expect(result.status, ExportStatus.saved);
+        expect(result.destination, destination.path);
         expect(await destination.readAsBytes(), bytes);
         expect(savePicker.suggestedName, 'export.pdf');
         expect(savePicker.groups!.single.extensions, ['pdf']);
@@ -300,7 +301,10 @@ void main() {
     () async {
       final original = File(p.join(work.path, 'export.zip'));
       await original.writeAsBytes([1, 2, 3]);
-      expect(await files.saveOrShare(original), isNull);
+      expect(
+        (await files.saveOrShare(original)).status,
+        ExportStatus.cancelled,
+      );
       expect(await original.exists(), isTrue);
     },
   );
@@ -350,12 +354,11 @@ void main() {
         expect(args['failureMessage'], isNotEmpty);
         return 'export.zip';
       });
-      expect(
-        await files.saveOrShare(export, languageCode: 'tr'),
-        'Saved to export.zip',
-      );
+      final saved = await files.saveOrShare(export, languageCode: 'tr');
+      expect(saved.status, ExportStatus.saved);
+      expect(saved.destination, 'export.zip');
       messenger.setMockMethodCallHandler(_storageChannel, (_) async => null);
-      expect(await files.saveOrShare(export), isNull);
+      expect((await files.saveOrShare(export)).status, ExportStatus.cancelled);
       expect(await export.exists(), isTrue);
     },
   );
@@ -371,7 +374,10 @@ void main() {
         calls.add(call);
         return 'com.apple.UIKit.activity.SaveToFiles';
       });
-      expect(await files.saveOrShare(original), contains('selected app'));
+      expect(
+        (await files.saveOrShare(original)).status,
+        ExportStatus.handedOff,
+      );
       final fallback = calls.last.arguments as Map;
       expect(fallback['originWidth'], greaterThan(0));
       expect(fallback['originHeight'], greaterThan(0));
@@ -394,14 +400,17 @@ void main() {
       final original = File(p.join(work.path, 'export.zip'));
       await original.writeAsBytes([1, 2]);
       messenger.setMockMethodCallHandler(_shareChannel, (_) async => '');
-      expect(await files.saveOrShare(original), isNull);
+      expect(
+        (await files.saveOrShare(original)).status,
+        ExportStatus.cancelled,
+      );
       messenger.setMockMethodCallHandler(
         _shareChannel,
         (_) async => 'dev.fluttercommunity.plus/share/unavailable',
       );
       expect(
-        await files.saveOrShare(original),
-        contains('without confirming an export'),
+        (await files.saveOrShare(original)).status,
+        ExportStatus.unconfirmed,
       );
     },
   );

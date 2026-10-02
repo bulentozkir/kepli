@@ -10,6 +10,7 @@ import '../services/document_scanner.dart';
 import '../services/platform_files.dart';
 import '../services/reminder_service.dart';
 import '../services/report_service.dart';
+import 'app_notice.dart';
 
 class AppDependencies {
   const AppDependencies({
@@ -58,7 +59,7 @@ class VaultState {
   final VaultSnapshot snapshot;
   final ReminderStatus reminderStatus;
   final bool busy;
-  final String? notice;
+  final AppNotice? notice;
   final String? selectedItemId;
   final List<PendingAttachment> recoveredPhotos;
 
@@ -66,7 +67,7 @@ class VaultState {
     VaultSnapshot? snapshot,
     ReminderStatus? reminderStatus,
     bool? busy,
-    String? notice,
+    AppNotice? notice,
     bool clearNotice = false,
     String? selectedItemId,
     bool clearSelection = false,
@@ -89,11 +90,12 @@ class VaultController extends Notifier<VaultState> {
   @override
   VaultState build() {
     final dependencies = ref.watch(dependenciesProvider);
+    final startup = dependencies.startupNotice;
     return VaultState(
       snapshot: dependencies.initialSnapshot,
       reminderStatus: dependencies.initialReminderStatus,
       recoveredPhotos: dependencies.recoveredPhotos,
-      notice: dependencies.startupNotice,
+      notice: startup == null ? null : ProblemNotice(startup),
     );
   }
 
@@ -123,7 +125,7 @@ class VaultController extends Notifier<VaultState> {
     }
   }
 
-  Future<void> _reload({String? notice}) async {
+  Future<void> _reload({AppNotice? notice}) async {
     final snapshot = await _dependencies.repository.load();
     state = state.copyWith(snapshot: snapshot, notice: notice);
     final status = await _dependencies.reminders.reconcile(snapshot);
@@ -132,12 +134,12 @@ class VaultController extends Notifier<VaultState> {
 
   Future<void> _commit(
     Future<void> Function() mutation, {
-    required String notice,
+    required AppNotice notice,
   }) async {
     try {
       await mutation();
     } on VaultCleanupException catch (error) {
-      await _reload(notice: error.message);
+      await _reload(notice: ProblemNotice(error.message));
       return;
     }
     await _reload(notice: notice);
@@ -145,7 +147,7 @@ class VaultController extends Notifier<VaultState> {
 
   Future<void> refresh() async {
     if (state.busy) return;
-    await _perform(() => _reload());
+    await _perform(_reload);
   }
 
   Future<void> saveItem(
@@ -154,7 +156,7 @@ class VaultController extends Notifier<VaultState> {
   }) => _perform(() async {
     await _commit(
       () => _dependencies.repository.saveItem(item, additions: additions),
-      notice: 'Warranty saved on this device.',
+      notice: const KindNotice(NoticeKind.saved),
     );
     selectItem(item.id);
   });
@@ -162,7 +164,7 @@ class VaultController extends Notifier<VaultState> {
   Future<void> deleteItem(String id) => _perform(() async {
     await _commit(
       () => _dependencies.repository.deleteItem(id),
-      notice: 'Warranty and its attachments deleted.',
+      notice: const KindNotice(NoticeKind.deleted),
     );
     if (state.selectedItemId == id) selectItem(null);
   });
@@ -180,7 +182,7 @@ class VaultController extends Notifier<VaultState> {
     }
     await _commit(
       () => _dependencies.repository.saveSettings(settings),
-      notice: 'Settings saved.',
+      notice: const KindNotice(NoticeKind.settingsSaved),
     );
   });
 
@@ -210,7 +212,7 @@ class VaultController extends Notifier<VaultState> {
         );
         await _commit(
           () => _dependencies.repository.replaceSnapshot(renamed),
-          notice: 'Settings saved.',
+          notice: const KindNotice(NoticeKind.settingsSaved),
         );
       });
 
@@ -231,7 +233,7 @@ class VaultController extends Notifier<VaultState> {
         mode,
         keepLocalIds: keepLocalIds,
       ),
-      notice: 'Backup restored. All referenced attachments verified.',
+      notice: const KindNotice(NoticeKind.restored),
     );
     selectItem(null);
   });
@@ -242,12 +244,12 @@ class VaultController extends Notifier<VaultState> {
   Future<void> _export(Future<File> Function() generate, Rect? shareOrigin) =>
       _perform(() async {
         final file = await generate();
-        final notice = await _dependencies.files.saveOrShare(
+        final outcome = await _dependencies.files.saveOrShare(
           file,
           shareOrigin: shareOrigin,
           languageCode: state.snapshot.settings.languageCode,
         );
-        if (notice != null) state = state.copyWith(notice: notice);
+        state = state.copyWith(notice: noticeForExport(outcome));
       });
 
   Future<void> exportBackup({Rect? shareOrigin}) =>

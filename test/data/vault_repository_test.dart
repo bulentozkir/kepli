@@ -285,7 +285,7 @@ void main() {
         original.attachments.single,
       );
       await harness.database.customStatement(
-        "CREATE TRIGGER reject_test_item BEFORE INSERT ON items "
+        'CREATE TRIGGER reject_test_item BEFORE INSERT ON items '
         "WHEN new.name = 'Reject transaction' BEGIN SELECT RAISE(ABORT, 'test failure'); END",
       );
       final source = await harness.source(smallPdf);

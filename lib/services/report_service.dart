@@ -160,15 +160,14 @@ class ReportService {
         : pw.TextDirection.ltr;
     final dateFormat = DateFormat.yMMMd(locale);
     final today = CalendarDate.fromDateTime(DateTime.now());
+    final monthCount = NumberFormat.decimalPattern(
+      locale,
+    ).format(current.warrantyLengthMonths);
     final fields = <List<String>>[
       [strings.name, current.name],
       [strings.category, localizeCategory(strings, current.category)],
       [strings.purchaseDate, dateFormat.format(current.purchaseDate.localDate)],
-      [
-        strings.warrantyLength,
-        '${NumberFormat.decimalPattern(locale).format(current.warrantyLengthMonths)} '
-            '${strings.months}',
-      ],
+      [strings.warrantyLength, '$monthCount ${strings.months}'],
       [strings.expiryDate, dateFormat.format(current.expiryDate.localDate)],
       [strings.status, localizeStatus(strings, current.statusAt(today))],
       [

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../application/app_notice.dart';
 import '../application/vault_controller.dart';
 import '../domain/models.dart';
 import 'about_screen.dart';
@@ -163,7 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _Destination.settings => SettingsScreen(key: _settings),
       _Destination.about => const AboutScreen(),
     };
-    ref.listen<String?>(vaultProvider.select((state) => state.notice), (
+    ref.listen<AppNotice?>(vaultProvider.select((state) => state.notice), (
       previous,
       next,
     ) {
@@ -214,7 +215,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               AccessibleIconButton(
                 label: l10n.addWarranty,
                 icon: Icons.add,
-                onPressed: state.busy ? null : () => _newWarranty(),
+                onPressed: state.busy ? null : _newWarranty,
               ),
           ],
         ),
@@ -534,7 +535,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           label: l10n.addWarranty,
           icon: Icons.add,
           primary: true,
-          onPressed: state.busy ? null : () => _newWarranty(),
+          onPressed: state.busy ? null : _newWarranty,
         ),
         const SizedBox(height: 16),
         if (visible == 0) ...[

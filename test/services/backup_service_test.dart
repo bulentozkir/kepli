@@ -9,6 +9,10 @@ import 'package:kepli/services/backup_service.dart';
 
 import '../data/test_support.dart';
 
+/// Typed access to a decoded manifest's item list, for crafting bad backups.
+List<Map<String, dynamic>> _manifestItems(Map<String, dynamic> manifest) =>
+    (manifest['items'] as List<Object?>).cast<Map<String, dynamic>>();
+
 void main() {
   late VaultHarness local;
   late VaultHarness remote;
@@ -277,7 +281,7 @@ void main() {
       );
       final preview = await service.inspectBackup((await remoteExport()).path);
       await local.database.customStatement(
-        "CREATE TRIGGER reject_restore BEFORE INSERT ON items "
+        'CREATE TRIGGER reject_restore BEFORE INSERT ON items '
         "WHEN new.name = 'Reject restore' BEGIN SELECT RAISE(ABORT, 'test failure'); END",
       );
       await expectLater(
@@ -401,12 +405,14 @@ void main() {
         ]),
       );
       final invalidId = backupManifest(items: [incoming]);
-      (invalidId['items'] as List).first['id'] = 'not-a-uuid';
+      _manifestItems(invalidId).first['id'] = 'not-a-uuid';
       await expectRejected(await crafted([manifestEntry(invalidId)]));
       for (final field in ['size', 'sha256']) {
         final invalid = backupManifest(items: [incoming]);
         final metadata =
-            ((invalid['items'] as List).first['attachments'] as List).first;
+            (_manifestItems(invalid).first['attachments'] as List<Object?>)
+                    .first
+                as Map<String, dynamic>;
         metadata[field] = field == 'size'
             ? attachment.size + 1
             : List.filled(64, '0').join();

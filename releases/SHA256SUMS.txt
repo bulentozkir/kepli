@@ -1,0 +1,2 @@
+19b4dce66185c4d031b7247df383a44a29e957f79ac5802fd766e2c6d1e5c47d  kepli-1.0.0-build1-android-release.apk
+47273c54f7399667328e3550d9515115b6ba217ef6b6d2eed57fd2a07e04c222  kepli-1.0.0-build1-android-release.aab

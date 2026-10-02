@@ -436,12 +436,14 @@ class ReminderService with WidgetsBindingObserver implements ReminderGateway {
     }
   }
 
+  static const _linuxLimitation =
+      'Linux has no native reminder scheduler. Reminders only work while '
+      'Kepli is open and a desktop notification service is available.';
+
   ReminderStatus _report({String? detail}) {
     final messages = <String>[
       ?_unavailableReason,
-      if (_platform == TargetPlatform.linux)
-        'Linux has no native reminder scheduler. Reminders only work while '
-            'Kepli is open and a desktop notification service is available.',
+      if (_platform == TargetPlatform.linux) _linuxLimitation,
       if (_platform == TargetPlatform.windows && _windowsPackaged)
         'Delivery also depends on Windows notification settings and Do Not Disturb.',
       if (_ready && !_authorized)

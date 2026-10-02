@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../application/app_notice.dart';
 import '../application/vault_controller.dart';
 import '../domain/models.dart';
 import 'ui_support.dart';
@@ -40,7 +41,7 @@ class WarrantyDetailPane extends ConsumerStatefulWidget {
 
 class _WarrantyDetailPaneState extends ConsumerState<WarrantyDetailPane> {
   bool _exporting = false;
-  String? _exportNotice;
+  AppNotice? _exportNotice;
   final _scrollController = ScrollController();
 
   @override
@@ -83,13 +84,13 @@ class _WarrantyDetailPaneState extends ConsumerState<WarrantyDetailPane> {
         settings: ref.read(vaultProvider).snapshot.settings,
       );
       final file = await dependencies.reports.exportCsv(snapshot);
-      final notice = await dependencies.files.saveOrShare(
+      final outcome = await dependencies.files.saveOrShare(
         file,
         shareOrigin: origin,
         languageCode: snapshot.settings.languageCode,
       );
       if (mounted) {
-        setState(() => _exportNotice = notice ?? 'Export cancelled.');
+        setState(() => _exportNotice = noticeForExport(outcome));
       }
     });
     if (mounted) setState(() => _exporting = false);
@@ -192,12 +193,10 @@ class _WarrantyDetailPaneState extends ConsumerState<WarrantyDetailPane> {
             label: l10n.price,
             value: item.price == null
                 ? l10n.notSet
-                : NumberFormat.currency(
-                    locale: l10n.localeName,
-                    name: item.currency,
-                    symbol: item.currency,
-                    decimalDigits: 2,
-                  ).format(num.parse(item.price!)),
+                : '${item.currency}\u00A0'
+                      '${(NumberFormat.decimalPattern(l10n.localeName)
+                        ..minimumFractionDigits = 2
+                        ..maximumFractionDigits = 2).format(num.parse(item.price!))}',
           ),
           LabeledValue(label: l10n.vendor, value: item.vendor ?? l10n.notSet),
           LabeledValue(label: l10n.notes, value: item.notes ?? l10n.notSet),

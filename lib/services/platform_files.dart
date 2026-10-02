@@ -15,10 +15,33 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart' hide XFile;
 import 'package:uuid/uuid.dart';
 
-import '../domain/models.dart';
 import '../data/attachment_files.dart';
+import '../domain/models.dart';
 import '../l10n/app_localizations.dart';
 import 'backup_service.dart';
+
+/// How a user-initiated export finished.
+enum ExportStatus { cancelled, saved, handedOff, unconfirmed }
+
+class ExportOutcome {
+  const ExportOutcome._(this.status) : destination = null;
+
+  /// The file was written to [destination], a path or document name.
+  const ExportOutcome.saved(String this.destination)
+    : status = ExportStatus.saved;
+
+  /// The user dismissed the save or share dialog.
+  static const cancelled = ExportOutcome._(ExportStatus.cancelled);
+
+  /// A share sheet accepted the file; the chosen app completes the save.
+  static const handedOff = ExportOutcome._(ExportStatus.handedOff);
+
+  /// The platform could not report whether the user finished sharing.
+  static const unconfirmed = ExportOutcome._(ExportStatus.unconfirmed);
+
+  final ExportStatus status;
+  final String? destination;
+}
 
 class PlatformFiles {
   PlatformFiles({required this.temporaryDirectory});
@@ -207,7 +230,7 @@ class PlatformFiles {
     return staged.path;
   });
 
-  Future<String?> saveOrShare(
+  Future<ExportOutcome> saveOrShare(
     File file, {
     Rect? shareOrigin,
     String languageCode = 'en',
@@ -226,7 +249,9 @@ class PlatformFiles {
         'successMessage': strings.exportReady,
         'failureMessage': strings.operationFailed,
       });
-      return destination == null ? null : 'Saved to $destination';
+      return destination == null
+          ? ExportOutcome.cancelled
+          : ExportOutcome.saved(destination);
     }
     if (isDesktop) {
       final extension = p.extension(name).substring(1);
@@ -239,7 +264,7 @@ class PlatformFiles {
           ),
         ],
       );
-      if (saved == null) return null;
+      if (saved == null) return ExportOutcome.cancelled;
       final destination = File(saved.path);
       final destinationParent = await destination.parent.resolveSymbolicLinks();
       final resolved = p.join(destinationParent, p.basename(destination.path));
@@ -251,7 +276,7 @@ class PlatformFiles {
         );
       }
       if (p.equals(p.absolute(file.path), p.absolute(destination.path))) {
-        return 'Saved to ${destination.path}';
+        return ExportOutcome.saved(destination.path);
       }
       final pending = File(
         p.join(destinationParent, '.kepli-${const Uuid().v4()}.partial'),
@@ -278,7 +303,7 @@ class PlatformFiles {
           'The export was not found at the selected destination.',
         );
       }
-      return 'Saved to ${destination.path}';
+      return ExportOutcome.saved(destination.path);
     }
     if (!cameraAvailable) {
       throw const KepliException('File sharing is unavailable here.');
@@ -301,11 +326,9 @@ class PlatformFiles {
       ),
     );
     return switch (result.status) {
-      ShareResultStatus.success =>
-        'Export handed to the selected app. Finish saving or sharing there.',
-      ShareResultStatus.dismissed => null,
-      ShareResultStatus.unavailable =>
-        'The share sheet closed without confirming an export. Check the destination.',
+      ShareResultStatus.success => ExportOutcome.handedOff,
+      ShareResultStatus.dismissed => ExportOutcome.cancelled,
+      ShareResultStatus.unavailable => ExportOutcome.unconfirmed,
     };
   });
 

@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kepli/application/app_notice.dart';
 import 'package:kepli/application/vault_controller.dart';
 import 'package:kepli/data/kepli_database.dart';
 import 'package:kepli/data/vault_repository.dart';
@@ -81,7 +82,14 @@ void main() {
         final state = container.read(vaultProvider);
         expect(state.snapshot.items.single.name, 'Cordless drill');
         expect(state.busy, isFalse);
-        expect(state.notice, contains('cleanup'));
+        expect(
+          state.notice,
+          isA<ProblemNotice>().having(
+            (notice) => notice.detail,
+            'detail',
+            contains('cleanup'),
+          ),
+        );
       } finally {
         container.dispose();
         await repository.close();

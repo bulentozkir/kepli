@@ -381,7 +381,7 @@ class SettingsScreenState extends ConsumerState<SettingsScreen> {
               icon: Icons.add,
               onPressed: busy || _categories.length >= 200
                   ? null
-                  : () => _editCategory(),
+                  : _editCategory,
             ),
             const SizedBox(height: 24),
             ActionButton(

@@ -674,7 +674,7 @@ class _WarrantyEditorState extends ConsumerState<WarrantyEditor> {
                     key: const Key('add-contact'),
                     label: l10n.addContact,
                     icon: Icons.person_add_alt_1_outlined,
-                    onPressed: busy ? null : () => _editContact(),
+                    onPressed: busy ? null : _editContact,
                   ),
                   const SizedBox(height: 32),
                   ActionButton(

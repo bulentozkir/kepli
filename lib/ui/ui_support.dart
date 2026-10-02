@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../application/app_notice.dart';
 import '../domain/models.dart';
 import '../domain/number_input.dart';
 import '../l10n/app_localizations.dart';
@@ -36,33 +37,26 @@ String normalizedPrice(BuildContext context, String value) {
   return canonicalPriceInput(value) ?? normalizeDigits(value.trim());
 }
 
-String? noticeLabel(BuildContext context, String notice) {
+/// Localized text for [notice], or null when it only carries technical detail.
+String? noticeLabel(BuildContext context, AppNotice notice) {
   final l10n = context.l10n;
-  final text = switch (notice) {
-    'Warranty saved on this device.' => l10n.saved,
-    'Warranty and its attachments deleted.' => l10n.deleted,
-    'Settings saved.' => l10n.settingsSaved,
-    'Backup restored. All referenced attachments verified.' => l10n.restored,
-    'Export ready.' => l10n.exportReady,
-    'Export cancelled.' => l10n.exportCancelled,
-    'Choose where to save or send the file in the share sheet.' =>
-      l10n.shareOpened,
-    'Export handed to the selected app. Finish saving or sharing there.' =>
-      l10n.shareOpened,
-    _ => null,
+  return switch (notice) {
+    KindNotice(:final kind) => switch (kind) {
+      NoticeKind.saved => l10n.saved,
+      NoticeKind.deleted => l10n.deleted,
+      NoticeKind.settingsSaved => l10n.settingsSaved,
+      NoticeKind.restored => l10n.restored,
+      NoticeKind.exportCancelled => l10n.exportCancelled,
+      NoticeKind.exportHandedOff => l10n.shareOpened,
+    },
+    SavedToNotice(:final destination) => l10n.fileSavedTo(destination),
+    ProblemNotice() => null,
   };
-  if (text != null) return text;
-  for (final prefix in ['File saved to ', 'Saved to ']) {
-    if (notice.startsWith(prefix)) {
-      return l10n.fileSavedTo(notice.substring(prefix.length));
-    }
-  }
-  return null;
 }
 
 class NoticePanel extends StatelessWidget {
   const NoticePanel({super.key, required this.notice, required this.onDismiss});
-  final String notice;
+  final AppNotice notice;
   final VoidCallback onDismiss;
 
   @override
@@ -77,7 +71,8 @@ class NoticePanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(label ?? context.l10n.operationFailed),
-              if (label == null) ErrorDetails(error: notice),
+              if (notice case ProblemNotice(:final detail))
+                ErrorDetails(error: detail),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: TextButton(

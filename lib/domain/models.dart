@@ -351,7 +351,7 @@ class WarrantyItem {
     if (rawAttachments is! List) {
       throw const KepliException('Item attachments must be a list.');
     }
-    final rawContacts = json['contacts'] ?? const [];
+    final rawContacts = json['contacts'] ?? const <Object?>[];
     if (rawContacts is! List) {
       throw const KepliException('Item contacts must be a list.');
     }

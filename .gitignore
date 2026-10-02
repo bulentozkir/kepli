@@ -47,3 +47,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Signing material and built release binaries (checksums/notes are kept)
+android/key.properties
+*.jks
+*.keystore
+/releases/*
+!/releases/README.md
+!/releases/SHA256SUMS.txt
+android/build/

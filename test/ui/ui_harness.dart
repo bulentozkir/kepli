@@ -4,8 +4,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kepli/application/vault_controller.dart';
 import 'package:kepli/app.dart';
+import 'package:kepli/application/vault_controller.dart';
 import 'package:kepli/data/kepli_database.dart';
 import 'package:kepli/data/vault_repository.dart';
 import 'package:kepli/domain/models.dart';
@@ -134,6 +134,7 @@ class UiHarness {
             final settings = ref.watch(vaultProvider).snapshot.settings;
             container = ProviderScope.containerOf(context);
             return MaterialApp(
+              debugShowCheckedModeBanner: false,
               locale: Locale(settings.languageCode),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
@@ -223,14 +224,14 @@ class UiFiles extends PlatformFiles {
   Future<String?> pickBackup() async => backupPath;
 
   @override
-  Future<String?> saveOrShare(
+  Future<ExportOutcome> saveOrShare(
     File file, {
     Rect? shareOrigin,
     String languageCode = 'en',
   }) async {
     exported.add(file);
     origins.add(shareOrigin);
-    return 'Saved to ${file.path}';
+    return ExportOutcome.saved(file.path);
   }
 
   @override
